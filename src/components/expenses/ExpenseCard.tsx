@@ -51,13 +51,13 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => {
-                        console.log('Delete button pressed, triggering onDelete...');
+                        console.log('Relative Delete button pressed!');
                         if (onDelete) onDelete();
                     }}
-                    activeOpacity={0.8}
-                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                    activeOpacity={0.7}
                 >
-                    <Text style={[styles.deleteIcon, { fontSize: 12 }]}>APAGAR</Text>
+                    <Text style={{ fontSize: 18 }}>🗑️</Text>
+                    <Text style={styles.deleteIcon}>Eliminar Transação</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -67,14 +67,10 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         marginBottom: theme.spacing.sm,
-        position: 'relative',
-        // Add padding to ensure the absolute positioned button stays within the parent view bounds
-        // This is critical for touch events on Android
-        paddingTop: 12,
-        paddingRight: 12,
+        // No padding needed for relative layout
     },
     touchable: {
-        flex: 1,
+        // flex: 1, // Removed flex 1 to allow container to grow
     },
     card: {
         flexDirection: 'row',
@@ -111,27 +107,21 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
         fontWeight: '600',
     },
+    // Relative Delete Button Styles
     deleteButton: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        backgroundColor: 'blue', // DEBUG COLOR - CHANGED TO BLUE TO VERIFY UPDATE
-        width: 80, // Much wider
-        borderRadius: 5,
+        marginTop: 8,
+        backgroundColor: '#FF5252', // Back to Red
+        paddingVertical: 12,
+        borderRadius: 8,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        shadowColor: '#000',
-        elevation: 10,
-        zIndex: 9999, // Ensure it's on top
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        width: '100%', // Full width
     },
     deleteIcon: {
         color: 'white',
-        fontSize: 20, // Increased font size
+        fontSize: 16,
         fontWeight: 'bold',
-        marginTop: -2,
+        marginLeft: 8,
     }
 });
