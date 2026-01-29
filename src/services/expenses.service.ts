@@ -80,12 +80,60 @@ export const expensesService = {
         return data;
     },
 
-    // Delete expense
+    // Delete expense (Robust implementation)
     async deleteExpense(expenseId: string) {
         console.log('[ExpensesService] deleteExpense called with ID:', expenseId);
 
         try {
-            // Try using the secure RPC function first
+            // 1. Get expense details to check for receipt
+            const { data: expense, error: fetchError } = await supabase
+                .from('expenses')
+                .select('receipt_id')
+                .eq('id', expenseId)
+                .single();
+
+            if (fetchError) {
+                console.warn('[ExpensesService] Could not fetch expense details. Proceeding with blind delete.', fetchError);
+            }
+
+            // 2. If there is a receipt, clean it up (Storage + DB)
+            if (expense?.receipt_id) {
+                console.log('[ExpensesService] Found receipt_id:', expense.receipt_id);
+
+                // Get storage path from receipts table
+                const { data: receipt, error: receiptError } = await supabase
+                    .from('receipts')
+                    .select('storage_path')
+                    .eq('id', expense.receipt_id)
+                    .single();
+
+                if (receipt?.storage_path) {
+                    console.log('[ExpensesService] Attempting to delete file from storage:', receipt.storage_path);
+                    const { error: storageError } = await supabase.storage
+                        .from('receipts')
+                        .remove([receipt.storage_path]);
+
+                    if (storageError) {
+                        console.error('[ExpensesService] Storage delete error (non-blocking):', storageError);
+                    } else {
+                        console.log('[ExpensesService] Storage file deleted successfully');
+                    }
+                }
+
+                // Delete receipt record (this might trigger SET NULL on expense, which is fine)
+                const { error: receiptDbError } = await supabase
+                    .from('receipts')
+                    .delete()
+                    .eq('id', expense.receipt_id);
+
+                if (receiptDbError) {
+                    console.error('[ExpensesService] Receipt DB delete error:', receiptDbError);
+                } else {
+                    console.log('[ExpensesService] Receipt record deleted successfully');
+                }
+            }
+
+            // 3. Delete the expense record (using secure RPC first)
             const { error } = await supabase.rpc('delete_expense', { expense_id: expenseId });
 
             if (error) {
