@@ -68,7 +68,11 @@ export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
     const loadCategories = async () => {
         if (!user) return;
         try {
-            const data = await expensesService.getCategories(user.id, type);
+            // If user wants same categories, we can fetch all or just expenses. 
+            // The user asked for "same categories" for income, so we fetch all or force 'expense' logic.
+            // Let's fetch ALL for now so they can pick any.
+            const queryType = type === 'income' ? 'all' : type;
+            const data = await expensesService.getCategories(user.id, queryType as any);
             setCategories(data);
         } catch (error) {
             console.log('Error loading categories', error);
@@ -81,7 +85,7 @@ export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
         try {
             setLoading(true);
             await expensesService.createExpense(user.id, {
-                amount: parseFloat(amount.replace(',', '.')),
+                amount: parseFloat(amount.replace(/,/g, '.')),
                 currency: 'EUR',
                 date: date,
                 merchant: merchant || 'Despesa Manual',

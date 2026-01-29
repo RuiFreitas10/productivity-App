@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, RefreshControl, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../theme/theme';
 import { expensesService } from '../../services/expenses.service';
@@ -95,6 +95,31 @@ export const ExpensesScreen = ({ navigation }: any) => {
         fetchExpenses();
     };
 
+    const confirmDelete = (item: Expense) => {
+        Alert.alert(
+            "Eliminar",
+            "Deseja eliminar este registo?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                {
+                    text: "Eliminar",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await expensesService.deleteExpense(item.id);
+                            fetchExpenses();
+                        } catch (error) {
+                            console.error(error);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             {/* Premium Header */}
@@ -163,7 +188,7 @@ export const ExpensesScreen = ({ navigation }: any) => {
                             amount={expense.amount}
                             currency={expense.currency}
                             categoryIcon={(expense as any).category?.icon}
-                            onPress={() => { }}
+                            onPress={() => confirmDelete(expense)}
                         />
                     ))
                 )}
