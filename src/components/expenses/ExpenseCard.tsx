@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Card } from '../ui/Card';
 import { theme } from '../../theme/theme';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
@@ -51,15 +51,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => {
-                        // HARDCODED DEBUG ALERT
-                        Alert.alert('DEBUG', 'O toque no botão funcionou! O problema é na ligação com a tela.');
-
-                        console.log('Relative Delete button pressed!');
-                        if (onDelete) {
-                            onDelete();
-                        } else {
-                            Alert.alert('ERRO', 'A função onDelete não foi passada para este cartão.');
-                        }
+                        if (onDelete) onDelete();
                     }}
                     activeOpacity={0.7}
                 >
