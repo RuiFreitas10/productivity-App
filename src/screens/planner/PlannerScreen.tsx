@@ -8,7 +8,9 @@ import {
     ActivityIndicator,
     Alert,
     ScrollView,
-    Dimensions
+    Dimensions,
+    TouchableWithoutFeedback,
+    Platform
 } from 'react-native';
 import { theme } from '../../theme/theme';
 import { useAuthStore } from '../../store/authStore';
@@ -37,6 +39,10 @@ const PlannerScreen = () => {
     const [newPlannerTitle, setNewPlannerTitle] = useState('');
     const [creatingPlanner, setCreatingPlanner] = useState(false);
 
+    // Edit Planner State
+    const [editingPlannerId, setEditingPlannerId] = useState<string | null>(null);
+    const [editingPlannerTitle, setEditingPlannerTitle] = useState('');
+
     // Add Habit Modal State
     const [modalVisible, setModalVisible] = useState(false);
     const [newHabitTitle, setNewHabitTitle] = useState('');
@@ -53,8 +59,6 @@ const PlannerScreen = () => {
                     setSelectedPlannerId(fetchedPlanners[0].id);
                 }
             } else {
-                // Should not happen for migrated users, but for new ones:
-                // Auto-create default planner
                 const defaultPlanner = await plannerService.createPlanner(user.id, 'Principal');
                 setPlanners([defaultPlanner]);
                 setSelectedPlannerId(defaultPlanner.id);
@@ -113,20 +117,37 @@ const PlannerScreen = () => {
             setPlanners([...planners, newPlanner]);
             setSelectedPlannerId(newPlanner.id);
             setNewPlannerTitle('');
-            setShowPlannerSelector(false); // Close modal
+            setShowPlannerSelector(false);
         } catch (error) {
-            Alert.alert('Erro', 'Não foi possível criar o planner');
+            // Alert.alert('Erro', 'Não foi possível criar o planner');
+            console.error("Failed to create", error);
         } finally {
             setCreatingPlanner(false);
         }
     }
+
+    const handleUpdatePlanner = async (id: string) => {
+        if (!user || !editingPlannerTitle.trim()) return;
+        try {
+            const updated = await plannerService.updatePlanner(id, editingPlannerTitle.trim());
+            setPlanners(planners.map(p => p.id === id ? updated : p));
+            setEditingPlannerId(null);
+            setEditingPlannerTitle('');
+        } catch (error) {
+            console.error("Failed to update", error);
+        }
+    }
+
+    const startEditing = (planner: any) => {
+        setEditingPlannerId(planner.id);
+        setEditingPlannerTitle(planner.title);
+    };
 
     const handleToggleHabit = async (habitId: string, date: Date) => {
         if (!user) return;
         const dateStr = date.toISOString().split('T')[0];
 
         try {
-            // Optimistic update
             const isCompleted = logs.some(l => l.habit_id === habitId && l.logged_date === dateStr);
             let newLogs = [...logs];
 
@@ -147,7 +168,7 @@ const PlannerScreen = () => {
             await plannerService.toggleHabitCompletion(user.id, habitId, dateStr);
         } catch (error) {
             console.error('Error toggling habit', error);
-            loadHabitsData(); // Revert on error
+            loadHabitsData();
         }
     };
 
@@ -166,34 +187,28 @@ const PlannerScreen = () => {
             setNewHabitTitle('');
             loadHabitsData();
         } catch (error) {
-            Alert.alert('Erro', 'Não foi possível criar o hábito');
+            console.error("Failed to create habit", error);
         } finally {
             setCreating(false);
         }
     };
 
     const renderGrid = () => {
-        const gridWidth = days.length * COLUMN_WIDTH;
         const today = new Date();
 
         return (
             <View style={styles.gridContainer}>
-                {/* Vertical Scroll for the whole list */}
                 <ScrollView
                     style={{ flex: 1 }}
                     showsVerticalScrollIndicator={false}
                     bounces={false}
                 >
                     <View style={{ flexDirection: 'row' }}>
-
-                        {/* LEFT COLUMN (FIXED NAMES) */}
                         <View style={styles.fixedColumn}>
-                            {/* Header for Habit Names */}
                             <View style={[styles.fixedHeaderCell]}>
                                 <Text style={styles.headerText}>Hábito</Text>
                             </View>
 
-                            {/* List of Habit Names */}
                             {habits.map((habit) => (
                                 <View key={habit.id} style={styles.fixedHabitCell}>
                                     <Text style={styles.habitName} numberOfLines={2}>{habit.title}</Text>
@@ -201,14 +216,12 @@ const PlannerScreen = () => {
                             ))}
                         </View>
 
-                        {/* RIGHT AREA (SCROLLABLE DAYS) */}
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={true}
                             contentContainerStyle={{ paddingLeft: HABIT_COLUMN_WIDTH }}
                         >
                             <View>
-                                {/* HEADER ROW (DAYS) */}
                                 <View style={styles.headerRow}>
                                     {days.map((day, index) => {
                                         const isToday = isSameDay(day, today);
@@ -231,7 +244,6 @@ const PlannerScreen = () => {
                                     })}
                                 </View>
 
-                                {/* HABIT ROWS (CHECKBOXES) */}
                                 {habits.map((habit) => (
                                     <View key={habit.id} style={styles.habitRow}>
                                         {days.map((day, index) => {
@@ -318,43 +330,37 @@ const PlannerScreen = () => {
                 renderGrid()
             )}
 
-            {/* NEW HABIT MODAL */}
+            {/* NEW HABIT MODAL with prevent click-through */}
             <Modal
                 visible={modalVisible}
                 transparent
                 animationType="slide"
                 onRequestClose={() => setModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Novo Hábito</Text>
-
-                        <Input
-                            placeholder="Nome do hábito (ex: Ler 10 páginas)"
-                            value={newHabitTitle}
-                            onChangeText={setNewHabitTitle}
-                            autoFocus
-                        />
-
-                        <View style={styles.modalButtons}>
-                            <Button
-                                title="Cancelar"
-                                onPress={() => setModalVisible(false)}
-                                variant="outline"
-                                style={{ flex: 1, marginRight: 8 }}
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setModalVisible(false)}
+                >
+                    <TouchableWithoutFeedback>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Novo Hábito</Text>
+                            <Input
+                                placeholder="Nome do hábito"
+                                value={newHabitTitle}
+                                onChangeText={setNewHabitTitle}
+                                autoFocus={Platform.OS !== 'web'} // Avoid web focus issues
                             />
-                            <Button
-                                title="Criar"
-                                onPress={handleCreateHabit}
-                                loading={creating}
-                                style={{ flex: 1, marginLeft: 8 }}
-                            />
+                            <View style={styles.modalButtons}>
+                                <Button title="Cancelar" onPress={() => setModalVisible(false)} variant="outline" style={{ flex: 1, marginRight: 8 }} />
+                                <Button title="Criar" onPress={handleCreateHabit} loading={creating} style={{ flex: 1, marginLeft: 8 }} />
+                            </View>
                         </View>
-                    </View>
-                </View>
+                    </TouchableWithoutFeedback>
+                </TouchableOpacity>
             </Modal>
 
-            {/* PLANNER SELECTOR MODAL */}
+            {/* PLANNER SELECTOR MODAL - Fixed for input focus */}
             <Modal
                 visible={showPlannerSelector}
                 transparent
@@ -366,53 +372,77 @@ const PlannerScreen = () => {
                     activeOpacity={1}
                     onPress={() => setShowPlannerSelector(false)}
                 >
-                    <View style={styles.selectorContent}>
-                        <Text style={styles.modalTitle}>Os meus Planners</Text>
+                    <TouchableWithoutFeedback>
+                        <View style={styles.selectorContent}>
+                            <Text style={styles.modalTitle}>Os meus Planners</Text>
 
-                        <ScrollView style={{ maxHeight: 300 }}>
-                            {planners.map(planner => (
-                                <TouchableOpacity
-                                    key={planner.id}
-                                    style={[
-                                        styles.plannerOption,
-                                        selectedPlannerId === planner.id && styles.plannerOptionActive
-                                    ]}
-                                    onPress={() => {
-                                        setSelectedPlannerId(planner.id);
-                                        setShowPlannerSelector(false);
-                                    }}
-                                >
-                                    <Text style={[
-                                        styles.plannerOptionText,
-                                        selectedPlannerId === planner.id && styles.plannerOptionTextActive
-                                    ]}>
-                                        {planner.title}
-                                    </Text>
-                                    {selectedPlannerId === planner.id && (
-                                        <Text style={styles.plannerOptionTextActive}>✓</Text>
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
+                            <ScrollView style={{ maxHeight: 300 }}>
+                                {planners.map(planner => (
+                                    <View key={planner.id} style={styles.plannerRow}>
+                                        {/* Edit Mode vs View Mode */}
+                                        {editingPlannerId === planner.id ? (
+                                            <View style={styles.editContainer}>
+                                                <Input
+                                                    value={editingPlannerTitle}
+                                                    onChangeText={setEditingPlannerTitle}
+                                                    containerStyle={{ flex: 1, marginBottom: 0 }}
+                                                    autoFocus
+                                                />
+                                                <TouchableOpacity onPress={() => handleUpdatePlanner(planner.id)} style={styles.iconBtn}>
+                                                    <Text style={{ color: theme.colors.accent.primary, fontWeight: 'bold' }}>OK</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : (
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.plannerOption,
+                                                    selectedPlannerId === planner.id && styles.plannerOptionActive
+                                                ]}
+                                                onPress={() => {
+                                                    setSelectedPlannerId(planner.id);
+                                                    setShowPlannerSelector(false);
+                                                }}
+                                            >
+                                                <Text style={[
+                                                    styles.plannerOptionText,
+                                                    selectedPlannerId === planner.id && styles.plannerOptionTextActive
+                                                ]}>
+                                                    {planner.title}
+                                                </Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    {selectedPlannerId === planner.id && (
+                                                        <Text style={styles.plannerOptionTextActive}>✓  </Text>
+                                                    )}
+                                                    {/* Edit Button */}
+                                                    <TouchableOpacity onPress={() => startEditing(planner)} style={styles.editBtn}>
+                                                        <Text style={{ fontSize: 18 }}>✎</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                ))}
+                            </ScrollView>
 
-                        <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                        <Text style={styles.sectionTitle}>Criar Novo Planner</Text>
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                            <Input
-                                placeholder="Nome (ex: Pessoal)"
-                                value={newPlannerTitle}
-                                onChangeText={setNewPlannerTitle}
-                                containerStyle={{ flex: 1, marginBottom: 0 }}
-                            />
-                            <Button
-                                title="+"
-                                onPress={handleCreatePlanner}
-                                loading={creatingPlanner}
-                                style={{ width: 50 }}
-                            />
+                            <Text style={styles.sectionTitle}>Criar Novo Planner</Text>
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <Input
+                                    placeholder="Nome (ex: Pessoal)"
+                                    value={newPlannerTitle}
+                                    onChangeText={setNewPlannerTitle}
+                                    containerStyle={{ flex: 1, marginBottom: 0 }}
+                                />
+                                <Button
+                                    title="+"
+                                    onPress={handleCreatePlanner}
+                                    loading={creatingPlanner}
+                                    style={{ width: 50 }}
+                                />
+                            </View>
                         </View>
-                    </View>
+                    </TouchableWithoutFeedback>
                 </TouchableOpacity>
             </Modal>
         </View>
@@ -619,7 +649,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.background.tertiary,
         width: '90%',
-        maxHeight: '80%',
+        maxHeight: '90%', // Increased max height
     },
     modalTitle: {
         ...theme.typography.h2,
@@ -631,6 +661,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginTop: theme.spacing.xl,
     },
+    plannerRow: {
+        marginBottom: 8,
+    },
     plannerOption: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -638,6 +671,7 @@ const styles = StyleSheet.create({
         padding: theme.spacing.lg,
         borderBottomWidth: 1,
         borderColor: theme.colors.background.tertiary,
+        borderRadius: theme.borderRadius.md,
     },
     plannerOptionActive: {
         backgroundColor: theme.colors.background.tertiary,
@@ -646,10 +680,26 @@ const styles = StyleSheet.create({
         ...theme.typography.body,
         color: theme.colors.text.secondary,
         fontSize: 18,
+        flex: 1,
     },
     plannerOptionTextActive: {
         color: theme.colors.accent.primary,
         fontWeight: 'bold',
+    },
+    editContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background.tertiary,
+        padding: 4,
+        borderRadius: 8,
+    },
+    iconBtn: {
+        padding: 10,
+    },
+    editBtn: {
+        padding: 8,
+        marginLeft: 8,
+        opacity: 0.6,
     },
     divider: {
         height: 1,

@@ -31,6 +31,18 @@ export const plannerService = {
         return data;
     },
 
+    async updatePlanner(plannerId: string, title: string) {
+        const { data, error } = await supabase
+            .from('planners')
+            .update({ title })
+            .eq('id', plannerId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
     async deletePlanner(plannerId: string) {
         const { error } = await supabase
             .from('planners')
@@ -50,8 +62,6 @@ export const plannerService = {
             .order('created_at', { ascending: true });
 
         // If plannerId is provided, filter by it. 
-        // If not, we might want to default to the 'Principal' planner or show all?
-        // Ideally, we should always require a plannerId now, but for backward compatibility:
         if (plannerId) {
             query = query.eq('planner_id', plannerId);
         }
