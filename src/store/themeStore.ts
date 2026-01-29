@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export const THEME_PALETTES = {
     green: {
@@ -77,7 +78,11 @@ export const useThemeStore = create<ThemeState>()(
         }),
         {
             name: 'theme-storage',
-            storage: createJSONStorage(() => AsyncStorage),
+            storage: createJSONStorage(() =>
+                Platform.OS === 'web'
+                    ? localStorage
+                    : AsyncStorage
+            ),
         }
     )
 );
