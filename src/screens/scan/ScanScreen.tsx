@@ -60,6 +60,14 @@ export const ScanScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <View style={styles.content}>
+                {/* Close Button since TabBar is hidden */}
+                <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => navigation.navigate('Wallet')}
+                >
+                    <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+
                 <View style={styles.iconContainer}>
                     <Text style={styles.icon}>🧾</Text>
                 </View>
@@ -102,8 +110,10 @@ export const ScanScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background.primary, justifyContent: 'center' },
-    content: { padding: theme.spacing.xl, alignItems: 'center' },
-    iconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.background.secondary, justifyContent: 'center', alignItems: 'center', marginBottom: theme.spacing.lg },
+    content: { padding: theme.spacing.xl, alignItems: 'center', width: '100%' },
+    closeButton: { position: 'absolute', top: 0, right: 20, padding: 10, zIndex: 10 },
+    closeButtonText: { fontSize: 30, color: theme.colors.text.secondary },
+    iconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.background.secondary, justifyContent: 'center', alignItems: 'center', marginBottom: theme.spacing.lg, marginTop: 40 },
     icon: { fontSize: 40 },
     title: { ...theme.typography.h2, color: theme.colors.text.primary, marginBottom: theme.spacing.sm, textAlign: 'center' },
     subtitle: { ...theme.typography.body, color: theme.colors.text.secondary, textAlign: 'center', marginBottom: theme.spacing.xl },

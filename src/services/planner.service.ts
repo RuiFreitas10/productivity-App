@@ -5,20 +5,64 @@ export type Habit = Database['public']['Tables']['habits']['Row'];
 export type HabitLog = Database['public']['Tables']['habit_logs']['Row'];
 
 export const plannerService = {
-    // Habits
-    async getHabits(userId: string) {
+    // Planners
+    async getPlanners(userId: string) {
         const { data, error } = await supabase
-            .from('habits')
+            .from('planners')
             .select('*')
             .eq('user_id', userId)
-            .eq('is_active', true)
             .order('created_at', { ascending: true });
 
         if (error) throw error;
         return data;
     },
 
-    async createHabit(userId: string, habit: { title: string; color?: string; icon?: string }) {
+    async createPlanner(userId: string, title: string) {
+        const { data, error } = await supabase
+            .from('planners')
+            .insert({
+                user_id: userId,
+                title: title
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async deletePlanner(plannerId: string) {
+        const { error } = await supabase
+            .from('planners')
+            .delete()
+            .eq('id', plannerId);
+
+        if (error) throw error;
+    },
+
+    // Habits
+    async getHabits(userId: string, plannerId?: string) {
+        let query = supabase
+            .from('habits')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: true });
+
+        // If plannerId is provided, filter by it. 
+        // If not, we might want to default to the 'Principal' planner or show all?
+        // Ideally, we should always require a plannerId now, but for backward compatibility:
+        if (plannerId) {
+            query = query.eq('planner_id', plannerId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data;
+    },
+
+    async createHabit(userId: string, habit: { title: string; color?: string; icon?: string; plannerId?: string }) {
         const { data, error } = await supabase
             .from('habits')
             .insert({
@@ -26,8 +70,9 @@ export const plannerService = {
                 title: habit.title,
                 color: habit.color,
                 icon: habit.icon,
-                frequency: 'daily', // Default for now
+                frequency: 'daily',
                 target_days_per_week: 7,
+                planner_id: habit.plannerId
             })
             .select()
             .single();
@@ -85,8 +130,6 @@ export const plannerService = {
         }
 
         if (existingLog) {
-            // If exists, toggle it (or delete it if we want 'uncheck' to mean 'no record')
-            // For now, let's delete it to "uncheck" effectively
             const { error: deleteError } = await supabase
                 .from('habit_logs')
                 .delete()
@@ -95,7 +138,6 @@ export const plannerService = {
             if (deleteError) throw deleteError;
             return null; // Returned null implies "not completed"
         } else {
-            // If doesn't exist, create it
             const { data, error: insertError } = await supabase
                 .from('habit_logs')
                 .insert({
