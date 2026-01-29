@@ -1,31 +1,31 @@
 export const colors = {
   background: {
-    primary: '#1A1A1A',
-    secondary: '#2A2A2A',
-    tertiary: '#3A3A3A',
-    input: '#2F3B4A',
+    primary: '#121212', // Deep Black
+    secondary: '#1E1E1E', // Light Black
+    tertiary: '#2C2C2C', // Dark Grey (Cards/Inputs)
+    input: '#2C2C2C',
   },
   accent: {
-    primary: '#D4A574', // Gold/Yellow
-    secondary: '#C9A96E',
+    primary: '#9E9E9E', // Premium Grey
+    secondary: '#757575', // Darker Grey
   },
   text: {
     primary: '#FFFFFF',
-    secondary: '#A0A0A0',
-    tertiary: '#707070',
+    secondary: '#B0B0B0',
+    tertiary: '#808080',
   },
-  success: '#4CAF50',
-  error: '#F44336',
-  warning: '#FFA726',
-  info: '#29B6F6',
+  success: '#81C784', // Muted Green
+  error: '#E57373', // Muted Red
+  warning: '#FFB74D', // Muted Orange
+  info: '#64B5F6', // Muted Blue
   chart: {
-    casa: '#5A6A7A',
-    comida: '#D4A574',
-    transporte: '#4A5A6A',
-    saude: '#6A7A8A',
-    lazer: '#3A4A5A',
-    alimentacao: '#D4A574',
-    combustivel: '#4A5A6A',
-    ginasio: '#6A7A8A',
+    casa: '#BDBDBD',
+    comida: '#9E9E9E',
+    transporte: '#757575',
+    saude: '#616161',
+    lazer: '#424242',
+    alimentacao: '#9E9E9E',
+    combustivel: '#757575',
+    ginasio: '#616161',
   },
 };

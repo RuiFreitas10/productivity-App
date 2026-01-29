@@ -56,7 +56,7 @@ export const RootNavigator: React.FC = () => {
             <Stack.Navigator
                 screenOptions={{
                     headerShown: false,
-                    cardStyle: { backgroundColor: '#1A1A1A' },
+                    cardStyle: { backgroundColor: '#121212' },
                 }}
             >
                 {!user ? (
