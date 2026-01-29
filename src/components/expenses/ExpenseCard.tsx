@@ -51,7 +51,6 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: theme.spacing.sm,
         paddingVertical: theme.spacing.md,
     },
     iconContainer: {
