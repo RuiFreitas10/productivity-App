@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -31,14 +31,41 @@ const PlannerScreen = () => {
     const [loading, setLoading] = useState(true);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [days, setDays] = useState<Date[]>([]);
+    const [planners, setPlanners] = useState<any[]>([]);
+    const [selectedPlannerId, setSelectedPlannerId] = useState<string | null>(null);
+    const [showPlannerSelector, setShowPlannerSelector] = useState(false);
+    const [newPlannerTitle, setNewPlannerTitle] = useState('');
+    const [creatingPlanner, setCreatingPlanner] = useState(false);
 
     // Add Habit Modal State
     const [modalVisible, setModalVisible] = useState(false);
     const [newHabitTitle, setNewHabitTitle] = useState('');
     const [creating, setCreating] = useState(false);
 
-    const loadData = useCallback(async () => {
+    const loadPlanners = useCallback(async () => {
         if (!user) return;
+        try {
+            const fetchedPlanners = await plannerService.getPlanners(user.id);
+
+            if (fetchedPlanners && fetchedPlanners.length > 0) {
+                setPlanners(fetchedPlanners);
+                if (!selectedPlannerId) {
+                    setSelectedPlannerId(fetchedPlanners[0].id);
+                }
+            } else {
+                // Should not happen for migrated users, but for new ones:
+                // Auto-create default planner
+                const defaultPlanner = await plannerService.createPlanner(user.id, 'Principal');
+                setPlanners([defaultPlanner]);
+                setSelectedPlannerId(defaultPlanner.id);
+            }
+        } catch (error) {
+            console.error('Error loading planners', error);
+        }
+    }, [user, selectedPlannerId]);
+
+    const loadHabitsData = useCallback(async () => {
+        if (!user || !selectedPlannerId) return;
         try {
             setLoading(true);
 
@@ -49,28 +76,50 @@ const PlannerScreen = () => {
             setDays(daysInMonth);
 
             const [fetchedHabits, fetchedLogs] = await Promise.all([
-                plannerService.getHabits(user.id),
+                plannerService.getHabits(user.id, selectedPlannerId),
                 plannerService.getHabitLogsRange(user.id, start.toISOString(), end.toISOString())
             ]);
 
             setHabits(fetchedHabits || []);
             setLogs(fetchedLogs || []);
         } catch (error) {
-            console.error('Error loading planner data', error);
+            console.error('Error loading habits data', error);
         } finally {
             setLoading(false);
         }
-    }, [user, currentMonth]);
+    }, [user, currentMonth, selectedPlannerId]);
 
     useFocusEffect(
         useCallback(() => {
-            loadData();
-        }, [loadData])
+            loadPlanners();
+        }, [loadPlanners])
     );
+
+    useEffect(() => {
+        if (selectedPlannerId) {
+            loadHabitsData();
+        }
+    }, [selectedPlannerId, loadHabitsData]);
 
     const changeMonth = (increment: number) => {
         setCurrentMonth(prev => increment > 0 ? addMonths(prev, 1) : subMonths(prev, 1));
     };
+
+    const handleCreatePlanner = async () => {
+        if (!user || !newPlannerTitle.trim()) return;
+        try {
+            setCreatingPlanner(true);
+            const newPlanner = await plannerService.createPlanner(user.id, newPlannerTitle.trim());
+            setPlanners([...planners, newPlanner]);
+            setSelectedPlannerId(newPlanner.id);
+            setNewPlannerTitle('');
+            setShowPlannerSelector(false); // Close modal
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível criar o planner');
+        } finally {
+            setCreatingPlanner(false);
+        }
+    }
 
     const handleToggleHabit = async (habitId: string, date: Date) => {
         if (!user) return;
@@ -98,23 +147,24 @@ const PlannerScreen = () => {
             await plannerService.toggleHabitCompletion(user.id, habitId, dateStr);
         } catch (error) {
             console.error('Error toggling habit', error);
-            loadData(); // Revert on error
+            loadHabitsData(); // Revert on error
         }
     };
 
     const handleCreateHabit = async () => {
-        if (!user || !newHabitTitle.trim()) return;
+        if (!user || !newHabitTitle.trim() || !selectedPlannerId) return;
 
         try {
             setCreating(true);
             await plannerService.createHabit(user.id, {
                 title: newHabitTitle.trim(),
                 color: theme.colors.accent.primary,
-                icon: '📝'
+                icon: '📝',
+                plannerId: selectedPlannerId
             });
             setModalVisible(false);
             setNewHabitTitle('');
-            loadData();
+            loadHabitsData();
         } catch (error) {
             Alert.alert('Erro', 'Não foi possível criar o hábito');
         } finally {
@@ -210,7 +260,7 @@ const PlannerScreen = () => {
 
                     {habits.length === 0 && (
                         <View style={[styles.emptyState, { marginLeft: HABIT_COLUMN_WIDTH }]}>
-                            <Text style={styles.emptyText}>Sem hábitos ainda.</Text>
+                            <Text style={styles.emptyText}>Planner vazio.</Text>
                             <Button
                                 title="Criar Primeiro Hábito"
                                 onPress={() => setModalVisible(true)}
@@ -225,15 +275,25 @@ const PlannerScreen = () => {
         );
     };
 
+    const selectedPlanner = planners.find(p => p.id === selectedPlannerId);
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>Planner Matrix</Text>
-                    <Text style={styles.subtitle}>
-                        {format(currentMonth, 'MMMM yyyy', { locale: pt })}
-                    </Text>
-                </View>
+                <TouchableOpacity
+                    style={styles.plannerSelector}
+                    onPress={() => setShowPlannerSelector(true)}
+                >
+                    <View>
+                        <Text style={styles.title}>
+                            {selectedPlanner ? selectedPlanner.title : 'A Carregar...'}
+                            <Text style={{ fontSize: 20 }}> ▾</Text>
+                        </Text>
+                        <Text style={styles.subtitle}>
+                            {format(currentMonth, 'MMMM yyyy', { locale: pt })}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
 
                 <View style={styles.controls}>
                     <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.monthBtn}>
@@ -258,6 +318,7 @@ const PlannerScreen = () => {
                 renderGrid()
             )}
 
+            {/* NEW HABIT MODAL */}
             <Modal
                 visible={modalVisible}
                 transparent
@@ -292,6 +353,68 @@ const PlannerScreen = () => {
                     </View>
                 </View>
             </Modal>
+
+            {/* PLANNER SELECTOR MODAL */}
+            <Modal
+                visible={showPlannerSelector}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowPlannerSelector(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowPlannerSelector(false)}
+                >
+                    <View style={styles.selectorContent}>
+                        <Text style={styles.modalTitle}>Os meus Planners</Text>
+
+                        <ScrollView style={{ maxHeight: 300 }}>
+                            {planners.map(planner => (
+                                <TouchableOpacity
+                                    key={planner.id}
+                                    style={[
+                                        styles.plannerOption,
+                                        selectedPlannerId === planner.id && styles.plannerOptionActive
+                                    ]}
+                                    onPress={() => {
+                                        setSelectedPlannerId(planner.id);
+                                        setShowPlannerSelector(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.plannerOptionText,
+                                        selectedPlannerId === planner.id && styles.plannerOptionTextActive
+                                    ]}>
+                                        {planner.title}
+                                    </Text>
+                                    {selectedPlannerId === planner.id && (
+                                        <Text style={styles.plannerOptionTextActive}>✓</Text>
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <View style={styles.divider} />
+
+                        <Text style={styles.sectionTitle}>Criar Novo Planner</Text>
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <Input
+                                placeholder="Nome (ex: Pessoal)"
+                                value={newPlannerTitle}
+                                onChangeText={setNewPlannerTitle}
+                                containerStyle={{ flex: 1, marginBottom: 0 }}
+                            />
+                            <Button
+                                title="+"
+                                onPress={handleCreatePlanner}
+                                loading={creatingPlanner}
+                                style={{ width: 50 }}
+                            />
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 };
@@ -308,6 +431,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: theme.spacing.xl,
         marginBottom: theme.spacing.md,
+    },
+    plannerSelector: {
+        flex: 1,
     },
     title: {
         ...theme.typography.h1,
@@ -486,6 +612,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.background.tertiary,
     },
+    selectorContent: {
+        backgroundColor: theme.colors.background.secondary,
+        padding: theme.spacing.xl,
+        borderRadius: theme.borderRadius.xl,
+        borderWidth: 1,
+        borderColor: theme.colors.background.tertiary,
+        width: '90%',
+        maxHeight: '80%',
+    },
     modalTitle: {
         ...theme.typography.h2,
         color: theme.colors.text.primary,
@@ -495,6 +630,37 @@ const styles = StyleSheet.create({
     modalButtons: {
         flexDirection: 'row',
         marginTop: theme.spacing.xl,
+    },
+    plannerOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: theme.spacing.lg,
+        borderBottomWidth: 1,
+        borderColor: theme.colors.background.tertiary,
+    },
+    plannerOptionActive: {
+        backgroundColor: theme.colors.background.tertiary,
+    },
+    plannerOptionText: {
+        ...theme.typography.body,
+        color: theme.colors.text.secondary,
+        fontSize: 18,
+    },
+    plannerOptionTextActive: {
+        color: theme.colors.accent.primary,
+        fontWeight: 'bold',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: theme.colors.background.tertiary,
+        marginVertical: theme.spacing.lg,
+    },
+    sectionTitle: {
+        ...theme.typography.caption,
+        color: theme.colors.text.tertiary,
+        marginBottom: theme.spacing.sm,
+        textTransform: 'uppercase',
     }
 });
 
