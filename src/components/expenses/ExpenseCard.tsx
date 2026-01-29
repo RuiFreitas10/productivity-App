@@ -48,7 +48,12 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
             </TouchableOpacity>
 
             {isSelected && (
-                <TouchableOpacity style={styles.deleteButton} onPress={onDelete} activeOpacity={0.8}>
+                <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={onDelete}
+                    activeOpacity={0.8}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                >
                     <Text style={styles.deleteIcon}>—</Text>
                 </TouchableOpacity>
             )}

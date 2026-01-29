@@ -82,17 +82,28 @@ export const expensesService = {
 
     // Delete expense
     async deleteExpense(expenseId: string) {
-        console.log('deleteExpense service called with ID:', expenseId);
-        const { error } = await supabase
-            .from('expenses')
-            .delete()
-            .eq('id', expenseId);
+        console.log('[ExpensesService] deleteExpense called with ID:', expenseId);
 
-        if (error) {
-            console.error('Delete error from Supabase:', error);
-            throw error;
+        try {
+            const { error, count } = await supabase
+                .from('expenses')
+                .delete({ count: 'exact' })
+                .eq('id', expenseId);
+
+            if (error) {
+                console.error('[ExpensesService] Delete error from Supabase:', JSON.stringify(error));
+                throw error;
+            }
+
+            console.log(`[ExpensesService] Delete successful. Rows affected: ${count}`);
+
+            if (count === 0) {
+                console.warn('[ExpensesService] Warning: Delete reported success but 0 rows were affected. ID might not exist or RLS blocked it.');
+            }
+        } catch (err) {
+            console.error('[ExpensesService] Unexpected error deleting expense:', err);
+            throw err;
         }
-        console.log('Delete successful in Supabase');
     },
 
     // Get categories

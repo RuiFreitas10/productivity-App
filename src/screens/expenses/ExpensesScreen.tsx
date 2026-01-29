@@ -112,14 +112,23 @@ export const ExpensesScreen = ({ navigation }: any) => {
                             console.log('Deleting expense:', item.id);
                             setLoading(true);
                             await expensesService.deleteExpense(item.id);
+
+                            // Success Feedback
+                            Alert.alert('Sucesso', 'Transação eliminada com sucesso!');
+
                             console.log('Expense deleted, refreshing...');
                             setSelectedExpenseId(null); // Clear selection
                             await fetchExpenses();
                             console.log('Expenses refreshed');
-                        } catch (error) {
+                        } catch (error: any) {
                             console.error('Error deleting expense:', error);
+                            // Error Feedback with specific message if available
+                            const errorMessage = error.message || error.error_description || 'Erro desconhecido ao eliminar';
+                            Alert.alert('Erro', `Não foi possível eliminar: ${errorMessage}`);
                         } finally {
                             setLoading(false);
+                            // Force refresh even if error to sync state
+                            // await fetchExpenses(); // Optional: might be too heavy? Let's leave it for now.
                         }
                     }
                 }
