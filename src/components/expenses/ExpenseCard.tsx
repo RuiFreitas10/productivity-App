@@ -51,8 +51,15 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => {
+                        // HARDCODED DEBUG ALERT
+                        Alert.alert('DEBUG', 'O toque no botão funcionou! O problema é na ligação com a tela.');
+
                         console.log('Relative Delete button pressed!');
-                        if (onDelete) onDelete();
+                        if (onDelete) {
+                            onDelete();
+                        } else {
+                            Alert.alert('ERRO', 'A função onDelete não foi passada para este cartão.');
+                        }
                     }}
                     activeOpacity={0.7}
                 >
