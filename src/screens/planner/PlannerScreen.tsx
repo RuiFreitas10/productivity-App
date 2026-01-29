@@ -13,7 +13,7 @@ import {
 import { theme } from '../../theme/theme';
 import { useAuthStore } from '../../store/authStore';
 import { plannerService, Habit, HabitLog } from '../../services/planner.service';
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../../components/ui/Button';
@@ -29,6 +29,7 @@ const PlannerScreen = () => {
     const [habits, setHabits] = useState<Habit[]>([]);
     const [logs, setLogs] = useState<HabitLog[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
     const [days, setDays] = useState<Date[]>([]);
 
     // Add Habit Modal State
@@ -41,10 +42,8 @@ const PlannerScreen = () => {
         try {
             setLoading(true);
 
-            // Default to current month for the grid
-            const now = new Date();
-            const start = startOfMonth(now);
-            const end = endOfMonth(now);
+            const start = startOfMonth(currentMonth);
+            const end = endOfMonth(currentMonth);
 
             const daysInMonth = eachDayOfInterval({ start, end });
             setDays(daysInMonth);
@@ -61,13 +60,17 @@ const PlannerScreen = () => {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, currentMonth]);
 
     useFocusEffect(
         useCallback(() => {
             loadData();
         }, [loadData])
     );
+
+    const changeMonth = (increment: number) => {
+        setCurrentMonth(prev => increment > 0 ? addMonths(prev, 1) : subMonths(prev, 1));
+    };
 
     const handleToggleHabit = async (habitId: string, date: Date) => {
         if (!user) return;
@@ -93,8 +96,6 @@ const PlannerScreen = () => {
             setLogs(newLogs);
 
             await plannerService.toggleHabitCompletion(user.id, habitId, dateStr);
-
-            // Ideally re-fetch or confirm success, but optimistic is fine for now
         } catch (error) {
             console.error('Error toggling habit', error);
             loadData(); // Revert on error
@@ -122,73 +123,103 @@ const PlannerScreen = () => {
     };
 
     const renderGrid = () => {
-        // Calculate total width based on number of days
-        const gridWidth = HABIT_COLUMN_WIDTH + (days.length * COLUMN_WIDTH);
+        const gridWidth = days.length * COLUMN_WIDTH;
+        const today = new Date();
 
         return (
             <View style={styles.gridContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ height: '100%' }}>
-                    <View style={{ width: gridWidth, height: '100%' }}>
-                        {/* Header Row */}
-                        <View style={styles.headerRow}>
-                            <View style={[styles.headerCell, { width: HABIT_COLUMN_WIDTH, borderRightWidth: 1, borderColor: theme.colors.background.tertiary }]}>
+                {/* Vertical Scroll for the whole list */}
+                <ScrollView
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                >
+                    <View style={{ flexDirection: 'row' }}>
+
+                        {/* LEFT COLUMN (FIXED NAMES) */}
+                        <View style={styles.fixedColumn}>
+                            {/* Header for Habit Names */}
+                            <View style={[styles.fixedHeaderCell]}>
                                 <Text style={styles.headerText}>Hábito</Text>
                             </View>
-                            {days.map((day, index) => {
-                                const isToday = isSameDay(day, new Date());
-                                return (
-                                    <View key={index} style={[styles.headerCell, isToday && styles.todayHeaderCell]}>
-                                        <Text style={[styles.dayName, isToday && styles.todayText]}>
-                                            {format(day, 'EEE', { locale: pt })}
-                                        </Text>
-                                        <Text style={[styles.dayNumber, isToday && styles.todayText]}>
-                                            {format(day, 'dd')}
-                                        </Text>
-                                    </View>
-                                );
-                            })}
+
+                            {/* List of Habit Names */}
+                            {habits.map((habit) => (
+                                <View key={habit.id} style={styles.fixedHabitCell}>
+                                    <Text style={styles.habitName} numberOfLines={2}>{habit.title}</Text>
+                                </View>
+                            ))}
                         </View>
 
-                        {/* Habits Rows */}
-                        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-                            {habits.map((habit) => (
-                                <View key={habit.id} style={styles.habitRow}>
-                                    <View style={[styles.habitNameCell, { width: HABIT_COLUMN_WIDTH }]}>
-                                        <Text style={styles.habitName} numberOfLines={2}>{habit.title}</Text>
-                                    </View>
+                        {/* RIGHT AREA (SCROLLABLE DAYS) */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={true}
+                            contentContainerStyle={{ paddingLeft: HABIT_COLUMN_WIDTH }}
+                        >
+                            <View>
+                                {/* HEADER ROW (DAYS) */}
+                                <View style={styles.headerRow}>
                                     {days.map((day, index) => {
-                                        const dateStr = day.toISOString().split('T')[0];
-                                        const isCompleted = logs.some(l => l.habit_id === habit.id && l.logged_date === dateStr);
-
+                                        const isToday = isSameDay(day, today);
                                         return (
-                                            <TouchableOpacity
+                                            <View
                                                 key={index}
-                                                style={styles.cell}
-                                                onPress={() => handleToggleHabit(habit.id, day)}
-                                                activeOpacity={0.7}
+                                                style={[
+                                                    styles.headerCell,
+                                                    isToday && styles.todayHeaderCell
+                                                ]}
                                             >
-                                                <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
-                                                    {isCompleted && <Text style={styles.checkmark}>✓</Text>}
-                                                </View>
-                                            </TouchableOpacity>
+                                                <Text style={[styles.dayName, isToday && styles.todayText]}>
+                                                    {format(day, 'EEE', { locale: pt })}
+                                                </Text>
+                                                <Text style={[styles.dayNumber, isToday && styles.todayText]}>
+                                                    {format(day, 'dd')}
+                                                </Text>
+                                            </View>
                                         );
                                     })}
                                 </View>
-                            ))}
-                            {habits.length === 0 && (
-                                <View style={[styles.emptyState, { width: Dimensions.get('window').width }]}>
-                                    <Text style={styles.emptyText}>Sem hábitos ainda.</Text>
-                                    <Button
-                                        title="Criar Primeiro Hábito"
-                                        onPress={() => setModalVisible(true)}
-                                        size="sm"
-                                        style={{ marginTop: 16 }}
-                                    />
-                                </View>
-                            )}
-                            <View style={{ height: 100 }} />
+
+                                {/* HABIT ROWS (CHECKBOXES) */}
+                                {habits.map((habit) => (
+                                    <View key={habit.id} style={styles.habitRow}>
+                                        {days.map((day, index) => {
+                                            const dateStr = day.toISOString().split('T')[0];
+                                            const isCompleted = logs.some(l => l.habit_id === habit.id && l.logged_date === dateStr);
+                                            const isToday = isSameDay(day, today);
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={[styles.cell, isToday && styles.todayCell]}
+                                                    onPress={() => handleToggleHabit(habit.id, day)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
+                                                        {isCompleted && <Text style={styles.checkmark}>✓</Text>}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                ))}
+                            </View>
                         </ScrollView>
                     </View>
+
+                    {habits.length === 0 && (
+                        <View style={[styles.emptyState, { marginLeft: HABIT_COLUMN_WIDTH }]}>
+                            <Text style={styles.emptyText}>Sem hábitos ainda.</Text>
+                            <Button
+                                title="Criar Primeiro Hábito"
+                                onPress={() => setModalVisible(true)}
+                                size="sm"
+                                style={{ marginTop: 16 }}
+                            />
+                        </View>
+                    )}
+                    <View style={{ height: 100 }} />
                 </ScrollView>
             </View>
         );
@@ -197,13 +228,28 @@ const PlannerScreen = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Planner Matrix</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => setModalVisible(true)}
-                >
-                    <Text style={styles.addButtonText}>+</Text>
-                </TouchableOpacity>
+                <View>
+                    <Text style={styles.title}>Planner Matrix</Text>
+                    <Text style={styles.subtitle}>
+                        {format(currentMonth, 'MMMM yyyy', { locale: pt })}
+                    </Text>
+                </View>
+
+                <View style={styles.controls}>
+                    <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.monthBtn}>
+                        <Text style={styles.monthBtnText}>{'<'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => changeMonth(1)} style={styles.monthBtn}>
+                        <Text style={styles.monthBtnText}>{'>'}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => setModalVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>+</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {loading ? (
@@ -267,17 +313,40 @@ const styles = StyleSheet.create({
         ...theme.typography.h1,
         color: theme.colors.text.primary,
     },
+    subtitle: {
+        ...theme.typography.body,
+        color: theme.colors.text.secondary,
+        textTransform: 'capitalize',
+        marginTop: 4,
+    },
+    controls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    monthBtn: {
+        padding: 8,
+        backgroundColor: theme.colors.background.tertiary,
+        borderRadius: 8,
+        width: 36,
+        alignItems: 'center',
+    },
+    monthBtnText: {
+        color: theme.colors.text.primary,
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
     addButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: theme.colors.background.tertiary,
+        backgroundColor: theme.colors.accent.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
     addButtonText: {
         fontSize: 24,
-        color: theme.colors.text.primary,
+        color: '#FFF',
         marginTop: -2
     },
     gridContainer: {
@@ -287,11 +356,39 @@ const styles = StyleSheet.create({
         borderTopRightRadius: theme.borderRadius.xl,
         overflow: 'hidden',
     },
-    headerRow: {
-        flexDirection: 'row',
+    fixedColumn: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: HABIT_COLUMN_WIDTH,
+        zIndex: 10,
+        backgroundColor: theme.colors.background.secondary,
+        borderRightWidth: 1,
+        borderColor: theme.colors.background.tertiary,
+        shadowColor: '#000',
+        shadowOffset: { width: 4, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    fixedHeaderCell: {
+        height: HEADER_HEIGHT,
+        justifyContent: 'center',
+        alignItems: 'center',
         borderBottomWidth: 1,
         borderColor: theme.colors.background.tertiary,
         backgroundColor: theme.colors.background.secondary,
+    },
+    fixedHabitCell: {
+        height: ROW_HEIGHT,
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.md,
+        borderBottomWidth: 1,
+        borderColor: theme.colors.background.tertiary,
+        backgroundColor: theme.colors.background.secondary,
+    },
+    headerRow: {
+        flexDirection: 'row',
         height: HEADER_HEIGHT,
     },
     headerCell: {
@@ -299,9 +396,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingVertical: 4,
+        borderBottomWidth: 1,
+        borderRightWidth: 1,
+        borderColor: theme.colors.background.tertiary,
     },
     todayHeaderCell: {
         backgroundColor: theme.colors.background.tertiary,
+        borderBottomWidth: 2,
+        borderBottomColor: theme.colors.accent.primary,
     },
     headerText: {
         ...theme.typography.caption,
@@ -323,18 +425,12 @@ const styles = StyleSheet.create({
     todayText: {
         color: theme.colors.accent.primary,
     },
+    todayCell: {
+        backgroundColor: 'rgba(158, 158, 158, 0.05)', // Subtle highlight for the column
+    },
     habitRow: {
         flexDirection: 'row',
         height: ROW_HEIGHT,
-        borderBottomWidth: 1,
-        borderColor: theme.colors.background.tertiary,
-    },
-    habitNameCell: {
-        justifyContent: 'center',
-        paddingHorizontal: theme.spacing.md,
-        borderRightWidth: 1,
-        borderColor: theme.colors.background.tertiary,
-        backgroundColor: theme.colors.background.secondary, // Sticky-like background
     },
     habitName: {
         ...theme.typography.caption,
@@ -343,8 +439,12 @@ const styles = StyleSheet.create({
     },
     cell: {
         width: COLUMN_WIDTH,
+        height: ROW_HEIGHT,
         justifyContent: 'center',
         alignItems: 'center',
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: theme.colors.background.tertiary,
     },
     checkbox: {
         width: 24,
@@ -367,6 +467,7 @@ const styles = StyleSheet.create({
     emptyState: {
         padding: theme.spacing.xl,
         alignItems: 'center',
+        marginTop: 40,
     },
     emptyText: {
         color: theme.colors.text.tertiary,
@@ -382,6 +483,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background.secondary,
         padding: theme.spacing.xl,
         borderRadius: theme.borderRadius.xl,
+        borderWidth: 1,
+        borderColor: theme.colors.background.tertiary,
     },
     modalTitle: {
         ...theme.typography.h2,
