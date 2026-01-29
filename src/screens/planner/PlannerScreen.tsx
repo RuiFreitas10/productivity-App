@@ -20,6 +20,8 @@ import { pt } from 'date-fns/locale';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { ThemeSelector } from '../../components/settings/ThemeSelector';
+import { useThemeStore } from '../../store/themeStore';
 
 const COLUMN_WIDTH = 60;
 const ROW_HEIGHT = 60;
@@ -28,6 +30,7 @@ const HABIT_COLUMN_WIDTH = 140;
 
 const PlannerScreen = () => {
     const { user } = useAuthStore();
+    const { colors } = useThemeStore();
     const [habits, setHabits] = useState<Habit[]>([]);
     const [logs, setLogs] = useState<HabitLog[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,6 +41,7 @@ const PlannerScreen = () => {
     const [showPlannerSelector, setShowPlannerSelector] = useState(false);
     const [newPlannerTitle, setNewPlannerTitle] = useState('');
     const [creatingPlanner, setCreatingPlanner] = useState(false);
+    const [showThemeSelector, setShowThemeSelector] = useState(false);
 
     // Edit Planner State
     const [editingPlannerId, setEditingPlannerId] = useState<string | null>(null);
@@ -179,7 +183,7 @@ const PlannerScreen = () => {
             setCreating(true);
             await plannerService.createHabit(user.id, {
                 title: newHabitTitle.trim(),
-                color: theme.colors.accent.primary,
+                color: colors.primary, // Use dynamic color
                 icon: '📝',
                 plannerId: selectedPlannerId
             });
@@ -230,13 +234,23 @@ const PlannerScreen = () => {
                                                 key={index}
                                                 style={[
                                                     styles.headerCell,
-                                                    isToday && styles.todayHeaderCell
+                                                    isToday && {
+                                                        backgroundColor: theme.colors.background.tertiary,
+                                                        borderBottomWidth: 2,
+                                                        borderBottomColor: colors.primary
+                                                    }
                                                 ]}
                                             >
-                                                <Text style={[styles.dayName, isToday && styles.todayText]}>
+                                                <Text style={[
+                                                    styles.dayName,
+                                                    isToday && { color: colors.primary }
+                                                ]}>
                                                     {format(day, 'EEE', { locale: pt })}
                                                 </Text>
-                                                <Text style={[styles.dayNumber, isToday && styles.todayText]}>
+                                                <Text style={[
+                                                    styles.dayNumber,
+                                                    isToday && { color: colors.primary }
+                                                ]}>
                                                     {format(day, 'dd')}
                                                 </Text>
                                             </View>
@@ -258,7 +272,13 @@ const PlannerScreen = () => {
                                                     onPress={() => handleToggleHabit(habit.id, day)}
                                                     activeOpacity={0.7}
                                                 >
-                                                    <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
+                                                    <View style={[
+                                                        styles.checkbox,
+                                                        isCompleted && {
+                                                            backgroundColor: colors.primary,
+                                                            borderColor: colors.primary
+                                                        }
+                                                    ]}>
                                                         {isCompleted && <Text style={styles.checkmark}>✓</Text>}
                                                     </View>
                                                 </TouchableOpacity>
@@ -308,6 +328,11 @@ const PlannerScreen = () => {
                 </TouchableOpacity>
 
                 <View style={styles.controls}>
+                    {/* Theme Selector Button */}
+                    <TouchableOpacity onPress={() => setShowThemeSelector(true)} style={[styles.monthBtn, { marginRight: 8 }]}>
+                        <Text style={styles.monthBtnText}>🎨</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.monthBtn}>
                         <Text style={styles.monthBtnText}>{'<'}</Text>
                     </TouchableOpacity>
@@ -316,7 +341,7 @@ const PlannerScreen = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.addButton}
+                        style={[styles.addButton, { backgroundColor: colors.primary }]}
                         onPress={() => setModalVisible(true)}
                     >
                         <Text style={styles.addButtonText}>+</Text>
@@ -325,7 +350,7 @@ const PlannerScreen = () => {
             </View>
 
             {loading ? (
-                <ActivityIndicator color={theme.colors.accent.primary} style={{ marginTop: 20 }} />
+                <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
             ) : (
                 renderGrid()
             )}
@@ -389,7 +414,7 @@ const PlannerScreen = () => {
                                                     autoFocus
                                                 />
                                                 <TouchableOpacity onPress={() => handleUpdatePlanner(planner.id)} style={styles.iconBtn}>
-                                                    <Text style={{ color: theme.colors.accent.primary, fontWeight: 'bold' }}>OK</Text>
+                                                    <Text style={{ color: colors.primary, fontWeight: 'bold' }}>OK</Text>
                                                 </TouchableOpacity>
                                             </View>
                                         ) : (
@@ -405,17 +430,17 @@ const PlannerScreen = () => {
                                             >
                                                 <Text style={[
                                                     styles.plannerOptionText,
-                                                    selectedPlannerId === planner.id && styles.plannerOptionTextActive
+                                                    selectedPlannerId === planner.id && { color: colors.primary, fontWeight: 'bold' }
                                                 ]}>
                                                     {planner.title}
                                                 </Text>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                     {selectedPlannerId === planner.id && (
-                                                        <Text style={styles.plannerOptionTextActive}>✓  </Text>
+                                                        <Text style={{ color: colors.primary, fontWeight: 'bold' }}>✓  </Text>
                                                     )}
-                                                    {/* Edit Button */}
+                                                    {/* Edit Button - White Color Fix */}
                                                     <TouchableOpacity onPress={() => startEditing(planner)} style={styles.editBtn}>
-                                                        <Text style={{ fontSize: 18 }}>✎</Text>
+                                                        <Text style={{ fontSize: 18, color: '#FFF' }}>✎</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </TouchableOpacity>
@@ -445,6 +470,9 @@ const PlannerScreen = () => {
                     </TouchableWithoutFeedback>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Theme Selector Modal */}
+            <ThemeSelector visible={showThemeSelector} onClose={() => setShowThemeSelector(false)} />
         </View>
     );
 };
@@ -496,7 +524,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: theme.colors.accent.primary,
+        backgroundColor: theme.colors.accent.primary, // fallback
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -556,16 +584,7 @@ const styles = StyleSheet.create({
         borderRightWidth: 1,
         borderColor: theme.colors.background.tertiary,
     },
-    todayHeaderCell: {
-        backgroundColor: theme.colors.background.tertiary,
-        borderBottomWidth: 2,
-        borderBottomColor: theme.colors.accent.primary,
-    },
-    headerText: {
-        ...theme.typography.caption,
-        color: theme.colors.text.secondary,
-        fontWeight: 'bold',
-    },
+    // Removed static today styles, handled dynamically in render
     dayName: {
         ...theme.typography.caption,
         fontSize: 10,
@@ -578,11 +597,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: theme.colors.text.secondary,
     },
-    todayText: {
-        color: theme.colors.accent.primary,
-    },
     todayCell: {
-        backgroundColor: 'rgba(158, 158, 158, 0.05)', // Subtle highlight for the column
+        backgroundColor: 'rgba(158, 158, 158, 0.05)',
     },
     habitRow: {
         flexDirection: 'row',
@@ -610,10 +626,6 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.text.tertiary,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    checkboxChecked: {
-        backgroundColor: theme.colors.accent.primary,
-        borderColor: theme.colors.accent.primary,
     },
     checkmark: {
         color: '#FFF',
@@ -649,7 +661,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.background.tertiary,
         width: '90%',
-        maxHeight: '90%', // Increased max height
+        maxHeight: '90%',
     },
     modalTitle: {
         ...theme.typography.h2,
@@ -682,10 +694,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         flex: 1,
     },
-    plannerOptionTextActive: {
-        color: theme.colors.accent.primary,
-        fontWeight: 'bold',
-    },
     editContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -699,7 +707,7 @@ const styles = StyleSheet.create({
     editBtn: {
         padding: 8,
         marginLeft: 8,
-        opacity: 0.6,
+        opacity: 0.8,
     },
     divider: {
         height: 1,
