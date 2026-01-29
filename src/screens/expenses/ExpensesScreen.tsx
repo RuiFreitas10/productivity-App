@@ -29,6 +29,7 @@ export const ExpensesScreen = ({ navigation }: any) => {
     const [income, setIncome] = useState(0);
     const [expense, setExpense] = useState(0);
     const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+    const [debugStatus, setDebugStatus] = useState<string>('Debug: Pronto'); // DEBUG STATE
 
     const fetchExpenses = async () => {
         if (!user) return;
@@ -97,47 +98,62 @@ export const ExpensesScreen = ({ navigation }: any) => {
         fetchExpenses();
     };
 
+    // Debug confirmDelete wrapper
     const confirmDelete = (item: Expense) => {
+        setDebugStatus(`Botão clicado! Item: ${item.id.substring(0, 4)}...`);
         console.log('confirmDelete called for item:', item.id);
-        Alert.alert(
-            "Eliminar",
-            "Deseja eliminar este registo?",
-            [
-                { text: "Cancelar", style: "cancel" },
-                {
-                    text: "Eliminar",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            console.log('Deleting expense:', item.id);
-                            setLoading(true);
-                            await expensesService.deleteExpense(item.id);
 
-                            // Success Feedback
-                            Alert.alert('Sucesso', 'Transação eliminada com sucesso!');
+        // Force immediate render update
+        setTimeout(() => {
+            try {
+                Alert.alert(
+                    "Eliminar",
+                    "Deseja eliminar este registo?",
+                    [
+                        {
+                            text: "Cancelar",
+                            style: "cancel",
+                            onPress: () => setDebugStatus('Cancelado pelo utilizador')
+                        },
+                        {
+                            text: "Eliminar",
+                            style: "destructive",
+                            onPress: async () => {
+                                setDebugStatus('A iniciar deleção...');
+                                try {
+                                    setLoading(true);
+                                    await expensesService.deleteExpense(item.id);
+                                    setDebugStatus('Sucesso! (Refresh em breve)');
+                                    Alert.alert('Sucesso', 'Transação eliminada!');
 
-                            console.log('Expense deleted, refreshing...');
-                            setSelectedExpenseId(null); // Clear selection
-                            await fetchExpenses();
-                            console.log('Expenses refreshed');
-                        } catch (error: any) {
-                            console.error('Error deleting expense:', error);
-                            // Error Feedback with specific message if available
-                            const errorMessage = error.message || error.error_description || 'Erro desconhecido ao eliminar';
-                            Alert.alert('Erro', `Não foi possível eliminar: ${errorMessage}`);
-                        } finally {
-                            setLoading(false);
-                            // Force refresh even if error to sync state
-                            // await fetchExpenses(); // Optional: might be too heavy? Let's leave it for now.
+                                    setSelectedExpenseId(null);
+                                    await fetchExpenses();
+                                    setDebugStatus('Lista atualizada.');
+                                } catch (error: any) {
+                                    const msg = error.message || 'Erro desconhecido';
+                                    setDebugStatus(`ERRO: ${msg}`);
+                                    Alert.alert('Erro', msg);
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }
                         }
-                    }
-                }
-            ]
-        );
+                    ]
+                );
+                setDebugStatus(prev => prev + ' -> Alert invocado');
+            } catch (alertError) {
+                setDebugStatus(`CRASH no Alert: ${alertError}`);
+            }
+        }, 100);
     };
 
     return (
         <View style={styles.container}>
+            {/* DEBUG BANNER */}
+            <View style={{ backgroundColor: 'black', padding: 10, alignItems: 'center', zIndex: 99999 }}>
+                <Text style={{ color: 'yellow', fontWeight: 'bold' }}>{debugStatus}</Text>
+            </View>
+
             {/* Premium Header */}
             <LinearGradient
                 colors={[theme.colors.background.secondary, theme.colors.background.primary]}
