@@ -57,7 +57,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                     activeOpacity={0.8}
                     hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                 >
-                    <Text style={styles.deleteIcon}>—</Text>
+                    <Text style={[styles.deleteIcon, { fontSize: 12 }]}>APAGAR</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         right: 0,
-        width: 32, // Increased size
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#FF5252', // Red
+        backgroundColor: 'blue', // DEBUG COLOR - CHANGED TO BLUE TO VERIFY UPDATE
+        width: 80, // Much wider
+        borderRadius: 5,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 10,
         shadowColor: '#000',
         elevation: 10,
         zIndex: 9999, // Ensure it's on top
