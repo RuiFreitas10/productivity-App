@@ -26,28 +26,37 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
     isSelected = false,
 }) => {
     return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-            <Card style={styles.card}>
-                <View style={styles.iconContainer}>
-                    <Text style={styles.icon}>{categoryIcon || '📌'}</Text>
-                </View>
-                <View style={styles.content}>
-                    <Text style={styles.merchant}>{merchant || 'Despesa'}</Text>
-                    <Text style={styles.date}>{formatDateTime(date)}</Text>
-                </View>
-                <Text style={styles.amount}>- {formatCurrency(amount, currency)}</Text>
+        <View style={styles.container}>
+            <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.touchable}>
+                <Card style={styles.card}>
+                    <View style={styles.iconContainer}>
+                        <Text style={styles.icon}>{categoryIcon || '📌'}</Text>
+                    </View>
+                    <View style={styles.content}>
+                        <Text style={styles.merchant}>{merchant || 'Despesa'}</Text>
+                        <Text style={styles.date}>{formatDateTime(date)}</Text>
+                    </View>
+                    <Text style={styles.amount}>- {formatCurrency(amount, currency)}</Text>
+                </Card>
+            </TouchableOpacity>
 
-                {isSelected && (
-                    <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-                        <Text style={styles.deleteIcon}>—</Text>
-                    </TouchableOpacity>
-                )}
-            </Card>
-        </TouchableOpacity>
+            {isSelected && (
+                <TouchableOpacity style={styles.deleteButton} onPress={onDelete} activeOpacity={0.8}>
+                    <Text style={styles.deleteIcon}>—</Text>
+                </TouchableOpacity>
+            )}
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        marginBottom: theme.spacing.sm,
+        position: 'relative',
+    },
+    touchable: {
+        flex: 1,
+    },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -93,9 +102,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#FF5252', // Red
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10,
-        elevation: 5,
         shadowColor: '#000',
+        elevation: 10, // Higher elevation
+        zIndex: 999, // Ensure it's on top
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
