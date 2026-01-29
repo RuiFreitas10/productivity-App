@@ -27,13 +27,15 @@ interface ManualExpenseModalProps {
         date?: string | Date;
         currency?: string;
     } | null;
+    type?: 'expense' | 'income';
 }
 
 export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
     visible,
     onClose,
     onSuccess,
-    initialData
+    initialData,
+    type = 'expense'
 }) => {
     const { user } = useAuthStore();
     const [amount, setAmount] = useState('');
@@ -61,12 +63,12 @@ export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
                 setDate(new Date());
             }
         }
-    }, [visible, user, initialData]);
+    }, [visible, user, initialData, type]);
 
     const loadCategories = async () => {
         if (!user) return;
         try {
-            const data = await expensesService.getCategories(user.id);
+            const data = await expensesService.getCategories(user.id, type);
             setCategories(data);
         } catch (error) {
             console.log('Error loading categories', error);
@@ -104,7 +106,7 @@ export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
             <View style={styles.overlay}>
                 <View style={styles.container}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Nova Despesa</Text>
+                        <Text style={styles.title}>{type === 'income' ? 'Nova Receita' : 'Nova Despesa'}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Text style={styles.closeButton}>✕</Text>
                         </TouchableOpacity>

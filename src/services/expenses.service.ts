@@ -91,12 +91,12 @@ export const expensesService = {
     },
 
     // Get categories
-    async getCategories(userId: string) {
+    async getCategories(userId: string, type: 'expense' | 'income' = 'expense') {
         const { data, error } = await supabase
             .from('categories')
             .select('*')
             .or(`user_id.eq.${userId},is_default.eq.true`)
-            .eq('type', 'expense');
+            .eq('type', type);
 
         if (error) throw error;
         return data as Category[];

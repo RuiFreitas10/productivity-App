@@ -23,8 +23,10 @@ export const ExpensesScreen = ({ navigation }: any) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState('month');
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [activeModalType, setActiveModalType] = useState<'expense' | 'income' | null>(null);
     const [balance, setBalance] = useState(0);
+    const [income, setIncome] = useState(0);
+    const [expense, setExpense] = useState(0);
 
     const fetchExpenses = async () => {
         if (!user) return;
@@ -52,9 +54,27 @@ export const ExpensesScreen = ({ navigation }: any) => {
             });
             setExpenses(fetchedExpenses || []);
 
-            // Calculate pseudo-balance (just total spent for now to show something)
-            const total = (fetchedExpenses || []).reduce((sum, e) => sum + Number(e.amount), 0);
-            setBalance(total);
+            setExpenses(fetchedExpenses || []);
+
+            // Calculate totals
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            (fetchedExpenses || []).forEach(e => {
+                const amount = Number(e.amount);
+                // Check category type if available
+                const type = (e as any).category?.type || 'expense';
+
+                if (type === 'income') {
+                    totalIncome += amount;
+                } else {
+                    totalExpense += amount;
+                }
+            });
+
+            setIncome(totalIncome);
+            setExpense(totalExpense);
+            setBalance(totalIncome - totalExpense);
 
         } catch (error) {
             console.error(error);
@@ -85,8 +105,20 @@ export const ExpensesScreen = ({ navigation }: any) => {
                 <View style={styles.headerContent}>
                     <View>
                         <Text style={styles.greeting}>Olá, {user?.email?.split('@')[0]}</Text>
-                        <Text style={styles.balanceLabel}>{selectedPeriod === 'month' ? 'Gasto este mês' : 'Total Gasto'}</Text>
+                        <Text style={styles.balanceLabel}>{selectedPeriod === 'month' ? 'Saldo este mês' : 'Saldo Total'}</Text>
                         <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
+
+                        <View style={styles.statsRow}>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>Receitas</Text>
+                                <Text style={[styles.statValue, { color: '#4CAF50' }]}>{formatCurrency(income)}</Text>
+                            </View>
+                            <View style={styles.statDivider} />
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>Despesas</Text>
+                                <Text style={[styles.statValue, { color: '#FF5252' }]}>{formatCurrency(expense)}</Text>
+                            </View>
+                        </View>
                     </View>
                     <TouchableOpacity style={styles.profileButton}>
                         <Text style={styles.profileIcon}>👤</Text>
@@ -130,7 +162,7 @@ export const ExpensesScreen = ({ navigation }: any) => {
                             date={expense.date}
                             amount={expense.amount}
                             currency={expense.currency}
-                            categoryIcon={expense.category?.icon}
+                            categoryIcon={(expense as any).category?.icon}
                             onPress={() => { }}
                         />
                     ))
@@ -138,15 +170,27 @@ export const ExpensesScreen = ({ navigation }: any) => {
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* Floating Action Button (Optional if tab bar handles it, but good for manual entry) */}
-            <TouchableOpacity style={styles.fab} onPress={() => setShowAddModal(true)}>
-                <Text style={styles.fabIcon}>+</Text>
-            </TouchableOpacity>
+            {/* Action Buttons */}
+            <View style={styles.fabContainer}>
+                <TouchableOpacity
+                    style={[styles.fab, { backgroundColor: '#FF5252', marginRight: 16 }]}
+                    onPress={() => setActiveModalType('expense')}
+                >
+                    <Text style={styles.fabIcon}>-</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.fab, { backgroundColor: '#4CAF50' }]}
+                    onPress={() => setActiveModalType('income')}
+                >
+                    <Text style={styles.fabIcon}>+</Text>
+                </TouchableOpacity>
+            </View>
 
             <ManualExpenseModal
-                visible={showAddModal}
-                onClose={() => setShowAddModal(false)}
+                visible={!!activeModalType}
+                onClose={() => setActiveModalType(null)}
                 onSuccess={fetchExpenses}
+                type={activeModalType || 'expense'}
             />
         </View>
     );
@@ -175,6 +219,13 @@ const styles = StyleSheet.create({
     emptyState: { alignItems: 'center', marginTop: 50 },
     emptyText: { ...theme.typography.body, color: theme.colors.text.tertiary },
 
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.accent.primary, justifyContent: 'center', alignItems: 'center', shadowColor: theme.colors.accent.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
-    fabIcon: { fontSize: 32, color: '#FFF', marginTop: -2 }
+    fabContainer: { position: 'absolute', bottom: 100, right: 20, flexDirection: 'row' },
+    fab: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
+    fabIcon: { fontSize: 32, color: '#FFF', marginTop: -2 },
+
+    statsRow: { flexDirection: 'row', marginTop: 15, alignItems: 'center' },
+    statItem: { marginRight: 15 },
+    statLabel: { ...theme.typography.caption, color: theme.colors.text.tertiary, fontSize: 12 },
+    statValue: { ...theme.typography.h3, fontSize: 16 },
+    statDivider: { width: 1, height: 24, backgroundColor: theme.colors.text.tertiary, marginRight: 15, opacity: 0.3 }
 });
