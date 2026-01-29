@@ -123,7 +123,7 @@ export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
                             value={amount}
                             onChangeText={setAmount}
                             placeholder="0.00"
-                            keyboardType="numeric"
+                            keyboardType="decimal-pad"
                             placeholderTextColor={theme.colors.text.tertiary}
                             autoFocus
                         />
@@ -168,7 +168,7 @@ export const ManualExpenseModal: React.FC<ManualExpenseModalProps> = ({
 
                     <View style={styles.footer}>
                         <Button
-                            title="Guardar Despesa"
+                            title={type === 'income' ? 'Adicionar Receita' : 'Guardar Despesa'}
                             onPress={handleSubmit}
                             loading={loading}
                             fullWidth
