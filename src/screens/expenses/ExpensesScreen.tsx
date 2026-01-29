@@ -98,6 +98,7 @@ export const ExpensesScreen = ({ navigation }: any) => {
     };
 
     const confirmDelete = (item: Expense) => {
+        console.log('confirmDelete called for item:', item.id);
         Alert.alert(
             "Eliminar",
             "Deseja eliminar este registo?",
@@ -108,11 +109,15 @@ export const ExpensesScreen = ({ navigation }: any) => {
                     style: "destructive",
                     onPress: async () => {
                         try {
+                            console.log('Deleting expense:', item.id);
                             setLoading(true);
                             await expensesService.deleteExpense(item.id);
-                            fetchExpenses();
+                            console.log('Expense deleted, refreshing...');
+                            setSelectedExpenseId(null); // Clear selection
+                            await fetchExpenses();
+                            console.log('Expenses refreshed');
                         } catch (error) {
-                            console.error(error);
+                            console.error('Error deleting expense:', error);
                         } finally {
                             setLoading(false);
                         }

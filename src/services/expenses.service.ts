@@ -82,12 +82,17 @@ export const expensesService = {
 
     // Delete expense
     async deleteExpense(expenseId: string) {
+        console.log('deleteExpense service called with ID:', expenseId);
         const { error } = await supabase
             .from('expenses')
             .delete()
             .eq('id', expenseId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Delete error from Supabase:', error);
+            throw error;
+        }
+        console.log('Delete successful in Supabase');
     },
 
     // Get categories
