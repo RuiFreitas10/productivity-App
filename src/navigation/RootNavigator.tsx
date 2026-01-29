@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, Text } from 'react-native';
 import { SplashScreen } from '../screens/auth/SplashScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
@@ -49,8 +48,7 @@ export const RootNavigator: React.FC = () => {
 
     // Show loading while checking auth
     if (isLoading) {
-        console.log('RootNavigator: Still Loading...');
-        return <View style={{ flex: 1, backgroundColor: 'red', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: 'white' }}>A Carregar App... (Debug)</Text></View>;
+        return null; // Could show a loading spinner here
     }
 
     return (
