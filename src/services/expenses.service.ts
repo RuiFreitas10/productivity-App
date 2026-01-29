@@ -85,21 +85,29 @@ export const expensesService = {
         console.log('[ExpensesService] deleteExpense called with ID:', expenseId);
 
         try {
-            const { error, count } = await supabase
-                .from('expenses')
-                .delete({ count: 'exact' })
-                .eq('id', expenseId);
+            // Try using the secure RPC function first
+            const { error } = await supabase.rpc('delete_expense', { expense_id: expenseId });
 
             if (error) {
-                console.error('[ExpensesService] Delete error from Supabase:', JSON.stringify(error));
-                throw error;
+                console.error('[ExpensesService] RPC delete error:', JSON.stringify(error));
+
+                // Fallback to standard delete if RPC doesn't exist or fails (e.g. user hasn't run SQL yet)
+                console.log('[ExpensesService] Falling back to standard delete...');
+                const { error: deleteError, count } = await supabase
+                    .from('expenses')
+                    .delete({ count: 'exact' })
+                    .eq('id', expenseId);
+
+                if (deleteError) throw deleteError;
+                console.log(`[ExpensesService] Standard delete successful. Rows affected: ${count}`);
+
+                if (count === 0) {
+                    console.warn('[ExpensesService] Warning: Standard delete reported success but 0 rows affected.');
+                }
+                return;
             }
 
-            console.log(`[ExpensesService] Delete successful. Rows affected: ${count}`);
-
-            if (count === 0) {
-                console.warn('[ExpensesService] Warning: Delete reported success but 0 rows were affected. ID might not exist or RLS blocked it.');
-            }
+            console.log('[ExpensesService] RPC delete successful');
         } catch (err) {
             console.error('[ExpensesService] Unexpected error deleting expense:', err);
             throw err;
