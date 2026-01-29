@@ -11,6 +11,8 @@ interface ExpenseCardProps {
     currency: string;
     categoryIcon?: string;
     onPress?: () => void;
+    onDelete?: () => void;
+    isSelected?: boolean;
 }
 
 export const ExpenseCard: React.FC<ExpenseCardProps> = ({
@@ -20,6 +22,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
     currency,
     categoryIcon,
     onPress,
+    onDelete,
+    isSelected = false,
 }) => {
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
@@ -32,6 +36,12 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                     <Text style={styles.date}>{formatDateTime(date)}</Text>
                 </View>
                 <Text style={styles.amount}>- {formatCurrency(amount, currency)}</Text>
+
+                {isSelected && (
+                    <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+                        <Text style={styles.deleteIcon}>—</Text>
+                    </TouchableOpacity>
+                )}
             </Card>
         </TouchableOpacity>
     );
@@ -74,4 +84,27 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
         fontWeight: '600',
     },
+    deleteButton: {
+        position: 'absolute',
+        top: -10,
+        right: -10,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#FF5252', // Red
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    deleteIcon: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginTop: -2,
+    }
 });

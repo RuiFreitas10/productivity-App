@@ -25,8 +25,10 @@ export const ExpensesScreen = ({ navigation }: any) => {
     const [selectedPeriod, setSelectedPeriod] = useState('month');
     const [activeModalType, setActiveModalType] = useState<'expense' | 'income' | null>(null);
     const [balance, setBalance] = useState(0);
+
     const [income, setIncome] = useState(0);
     const [expense, setExpense] = useState(0);
+    const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
 
     const fetchExpenses = async () => {
         if (!user) return;
@@ -188,7 +190,9 @@ export const ExpensesScreen = ({ navigation }: any) => {
                             amount={expense.amount}
                             currency={expense.currency}
                             categoryIcon={(expense as any).category?.icon}
-                            onPress={() => confirmDelete(expense)}
+                            onPress={() => setSelectedExpenseId(selectedExpenseId === expense.id ? null : expense.id)}
+                            isSelected={selectedExpenseId === expense.id}
+                            onDelete={() => confirmDelete(expense)}
                         />
                     ))
                 )}
