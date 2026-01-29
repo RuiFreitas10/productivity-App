@@ -98,143 +98,116 @@ export const ExpensesScreen = ({ navigation }: any) => {
         fetchExpenses();
     };
 
-    // Debug confirmDelete wrapper
+    // Confirm Delete Handler
     const confirmDelete = (item: Expense) => {
-        setDebugStatus(`Botão clicado! Item: ${item.id.substring(0, 4)}...`);
-        console.log('confirmDelete called for item:', item.id);
-
-        // Force immediate render update
-        setTimeout(() => {
-            try {
-                Alert.alert(
-                    "Eliminar",
-                    "Deseja eliminar este registo?",
-                    [
-                        {
-                            text: "Cancelar",
-                            style: "cancel",
-                            onPress: () => setDebugStatus('Cancelado pelo utilizador')
-                        },
-                        {
-                            text: "Eliminar",
-                            style: "destructive",
-                            onPress: async () => {
-                                setDebugStatus('A iniciar deleção...');
-                                try {
-                                    setLoading(true);
-                                    await expensesService.deleteExpense(item.id);
-                                    setDebugStatus('Sucesso! (Refresh em breve)');
-                                    Alert.alert('Sucesso', 'Transação eliminada!');
-
-                                    setSelectedExpenseId(null);
-                                    await fetchExpenses();
-                                    setDebugStatus('Lista atualizada.');
-                                } catch (error: any) {
-                                    const msg = error.message || 'Erro desconhecido';
-                                    setDebugStatus(`ERRO: ${msg}`);
-                                    Alert.alert('Erro', msg);
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }
+        Alert.alert(
+            "Eliminar",
+            "Deseja eliminar este registo?",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel",
+                },
+                {
+                    text: "Eliminar",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await expensesService.deleteExpense(item.id);
+                            Alert.alert('Sucesso', 'Transação eliminada!');
+                            await fetchExpenses();
+                        } catch (error: any) {
+                            const msg = error.message || 'Erro desconhecido';
+                            Alert.alert('Erro', msg);
+                        } finally {
+                            setLoading(false);
                         }
-                    ]
-                );
-                setDebugStatus(prev => prev + ' -> Alert invocado');
-            } catch (alertError) {
-                setDebugStatus(`CRASH no Alert: ${alertError}`);
-            }
-        }, 100);
+                    }
+                }
+            ]
+        );
     };
 
     return (
         <View style={styles.container}>
-            {/* DEBUG BANNER */}
-            <View style={{ backgroundColor: 'black', padding: 10, alignItems: 'center', zIndex: 99999 }}>
-                <Text style={{ color: 'yellow', fontWeight: 'bold' }}>{debugStatus}</Text>
+                <Text style={styles.greeting}>Olá, {user?.email?.split('@')[0]}</Text>
+                <Text style={styles.balanceLabel}>{selectedPeriod === 'month' ? 'Saldo este mês' : 'Saldo Total'}</Text>
+                <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
+
+                <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Receitas</Text>
+                        <Text style={[styles.statValue, { color: '#4CAF50' }]}>{formatCurrency(income)}</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Despesas</Text>
+                        <Text style={[styles.statValue, { color: '#FF5252' }]}>{formatCurrency(expense)}</Text>
+                    </View>
+                </View>
             </View>
+            <TouchableOpacity style={styles.profileButton}>
+                <Text style={styles.profileIcon}>👤</Text>
+            </TouchableOpacity>
+        </View >
 
-            {/* Premium Header */}
-            <LinearGradient
-                colors={[theme.colors.background.secondary, theme.colors.background.primary]}
-                style={styles.header}
+    {/* Period Selector */ }
+    < ScrollView horizontal showsHorizontalScrollIndicator = { false} contentContainerStyle = { styles.periodContainer } >
+    {
+        PERIODS.map(p => (
+            <TouchableOpacity
+                key={p.value}
+                style={[styles.periodButton, selectedPeriod === p.value && styles.periodButtonActive]}
+                onPress={() => setSelectedPeriod(p.value)}
             >
-                <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.greeting}>Olá, {user?.email?.split('@')[0]}</Text>
-                        <Text style={styles.balanceLabel}>{selectedPeriod === 'month' ? 'Saldo este mês' : 'Saldo Total'}</Text>
-                        <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
+                <Text style={[styles.periodText, selectedPeriod === p.value && styles.periodTextActive]}>
+                    {p.label}
+                </Text>
+            </TouchableOpacity>
+        ))
+    }
+        </ScrollView >
+    </LinearGradient >
 
-                        <View style={styles.statsRow}>
-                            <View style={styles.statItem}>
-                                <Text style={styles.statLabel}>Receitas</Text>
-                                <Text style={[styles.statValue, { color: '#4CAF50' }]}>{formatCurrency(income)}</Text>
-                            </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
-                                <Text style={styles.statLabel}>Despesas</Text>
-                                <Text style={[styles.statValue, { color: '#FF5252' }]}>{formatCurrency(expense)}</Text>
-                            </View>
-                        </View>
-                    </View>
-                    <TouchableOpacity style={styles.profileButton}>
-                        <Text style={styles.profileIcon}>👤</Text>
-                    </TouchableOpacity>
-                </View>
+    {/* Content Body */ }
+    < ScrollView
+style = { styles.content }
+refreshControl = {< RefreshControl refreshing = { refreshing } onRefresh = { onRefresh } tintColor = { theme.colors.accent.primary } />}
+    >
+    <View style={styles.listHeader}>
+        <Text style={styles.listTitle}>Transações Recentes</Text>
+    </View>
 
-                {/* Period Selector */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periodContainer}>
-                    {PERIODS.map(p => (
-                        <TouchableOpacity
-                            key={p.value}
-                            style={[styles.periodButton, selectedPeriod === p.value && styles.periodButtonActive]}
-                            onPress={() => setSelectedPeriod(p.value)}
-                        >
-                            <Text style={[styles.periodText, selectedPeriod === p.value && styles.periodTextActive]}>
-                                {p.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </LinearGradient>
+{
+    expenses.length === 0 && !loading ? (
+        <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Sem despesas neste período.</Text>
+        </View>
+    ) : (
+    expenses.map(expense => {
+        const expenseType = (expense as any).category?.type || 'expense';
+        return (
+            <ExpenseCard
+                key={expense.id}
+                merchant={expense.merchant}
+                date={expense.date}
+                amount={expense.amount}
+                currency={expense.currency}
+                categoryIcon={(expense as any).category?.icon}
+                type={expenseType}
+                onPress={() => console.log('Expense tap')} // Just visual feedback or open details later
+                onLongPress={() => confirmDelete(expense)} // Long Press to Delete
+            />
+        );
+    })
+)
+}
+<View style={{ height: 100 }} />
+    </ScrollView >
 
-            {/* Content Body */}
-            <ScrollView
-                style={styles.content}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.accent.primary} />}
-            >
-                <View style={styles.listHeader}>
-                    <Text style={styles.listTitle}>Transações Recentes</Text>
-                </View>
-
-                {expenses.length === 0 && !loading ? (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>Sem despesas neste período.</Text>
-                    </View>
-                ) : (
-                    expenses.map(expense => {
-                        const expenseType = (expense as any).category?.type || 'expense';
-                        return (
-                            <ExpenseCard
-                                key={expense.id}
-                                merchant={expense.merchant}
-                                date={expense.date}
-                                amount={expense.amount}
-                                currency={expense.currency}
-                                categoryIcon={(expense as any).category?.icon}
-                                type={expenseType}
-                                onPress={() => setSelectedExpenseId(selectedExpenseId === expense.id ? null : expense.id)}
-                                isSelected={selectedExpenseId === expense.id}
-                                onDelete={() => confirmDelete(expense)}
-                            />
-                        );
-                    })
-                )}
-                <View style={{ height: 100 }} />
-            </ScrollView>
-
-            {/* Action Buttons */}
-            <View style={styles.fabContainer}>
+    {/* Action Buttons */ }
+    < View style = { styles.fabContainer } >
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: '#FF5252', marginRight: 16 }]}
                     onPress={() => setActiveModalType('expense')}
@@ -247,15 +220,15 @@ export const ExpensesScreen = ({ navigation }: any) => {
                 >
                     <Text style={styles.fabIcon}>+</Text>
                 </TouchableOpacity>
-            </View>
+            </View >
 
-            <ManualExpenseModal
-                visible={!!activeModalType}
-                onClose={() => setActiveModalType(null)}
-                onSuccess={fetchExpenses}
-                type={activeModalType || 'expense'}
-            />
-        </View>
+    <ManualExpenseModal
+        visible={!!activeModalType}
+        onClose={() => setActiveModalType(null)}
+        onSuccess={fetchExpenses}
+        type={activeModalType || 'expense'}
+    />
+        </View >
     );
 };
 

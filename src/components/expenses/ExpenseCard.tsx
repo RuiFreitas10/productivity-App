@@ -11,8 +11,7 @@ interface ExpenseCardProps {
     currency: string;
     categoryIcon?: string;
     onPress?: () => void;
-    onDelete?: () => void;
-    isSelected?: boolean;
+    onLongPress?: () => void; // New Prop
     type?: 'income' | 'expense';
 }
 
@@ -23,13 +22,18 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
     currency,
     categoryIcon,
     onPress,
-    onDelete,
-    isSelected = false,
+    onLongPress,
     type = 'expense',
 }) => {
     return (
         <View style={styles.container}>
-            <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.touchable}>
+            <TouchableOpacity
+                onPress={onPress}
+                onLongPress={onLongPress} // Connect Long Press
+                delayLongPress={500} // Half second delay
+                activeOpacity={0.7}
+                style={styles.touchable}
+            >
                 <Card style={styles.card}>
                     <View style={styles.iconContainer}>
                         <Text style={styles.icon}>{categoryIcon || '📌'}</Text>
@@ -46,19 +50,6 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                     </Text>
                 </Card>
             </TouchableOpacity>
-
-            {isSelected && (
-                <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => {
-                        if (onDelete) onDelete();
-                    }}
-                    activeOpacity={0.7}
-                >
-                    <Text style={{ fontSize: 18 }}>🗑️</Text>
-                    <Text style={styles.deleteIcon}>Eliminar Transação</Text>
-                </TouchableOpacity>
-            )}
         </View>
     );
 };
@@ -66,10 +57,9 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         marginBottom: theme.spacing.sm,
-        // No padding needed for relative layout
     },
     touchable: {
-        // flex: 1, // Removed flex 1 to allow container to grow
+        width: '100%',
     },
     card: {
         flexDirection: 'row',
@@ -105,22 +95,5 @@ const styles = StyleSheet.create({
         ...theme.typography.body,
         color: theme.colors.text.primary,
         fontWeight: '600',
-    },
-    // Relative Delete Button Styles
-    deleteButton: {
-        marginTop: 8,
-        backgroundColor: '#FF5252', // Back to Red
-        paddingVertical: 12,
-        borderRadius: 8,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%', // Full width
-    },
-    deleteIcon: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 8,
     }
 });
