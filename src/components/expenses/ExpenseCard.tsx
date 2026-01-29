@@ -13,6 +13,7 @@ interface ExpenseCardProps {
     onPress?: () => void;
     onDelete?: () => void;
     isSelected?: boolean;
+    type?: 'income' | 'expense';
 }
 
 export const ExpenseCard: React.FC<ExpenseCardProps> = ({
@@ -24,6 +25,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
     onPress,
     onDelete,
     isSelected = false,
+    type = 'expense',
 }) => {
     return (
         <View style={styles.container}>
@@ -33,10 +35,15 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                         <Text style={styles.icon}>{categoryIcon || '📌'}</Text>
                     </View>
                     <View style={styles.content}>
-                        <Text style={styles.merchant}>{merchant || 'Despesa'}</Text>
+                        <Text style={styles.merchant}>{merchant || (type === 'income' ? 'Receita' : 'Despesa')}</Text>
                         <Text style={styles.date}>{formatDateTime(date)}</Text>
                     </View>
-                    <Text style={styles.amount}>- {formatCurrency(amount, currency)}</Text>
+                    <Text style={[
+                        styles.amount,
+                        type === 'income' && { color: '#4CAF50' }
+                    ]}>
+                        {type === 'income' ? '+' : '-'} {formatCurrency(amount, currency)}
+                    </Text>
                 </Card>
             </TouchableOpacity>
 

@@ -187,19 +187,23 @@ export const ExpensesScreen = ({ navigation }: any) => {
                         <Text style={styles.emptyText}>Sem despesas neste período.</Text>
                     </View>
                 ) : (
-                    expenses.map(expense => (
-                        <ExpenseCard
-                            key={expense.id}
-                            merchant={expense.merchant}
-                            date={expense.date}
-                            amount={expense.amount}
-                            currency={expense.currency}
-                            categoryIcon={(expense as any).category?.icon}
-                            onPress={() => setSelectedExpenseId(selectedExpenseId === expense.id ? null : expense.id)}
-                            isSelected={selectedExpenseId === expense.id}
-                            onDelete={() => confirmDelete(expense)}
-                        />
-                    ))
+                    expenses.map(expense => {
+                        const expenseType = (expense as any).category?.type || 'expense';
+                        return (
+                            <ExpenseCard
+                                key={expense.id}
+                                merchant={expense.merchant}
+                                date={expense.date}
+                                amount={expense.amount}
+                                currency={expense.currency}
+                                categoryIcon={(expense as any).category?.icon}
+                                type={expenseType}
+                                onPress={() => setSelectedExpenseId(selectedExpenseId === expense.id ? null : expense.id)}
+                                isSelected={selectedExpenseId === expense.id}
+                                onDelete={() => confirmDelete(expense)}
+                            />
+                        );
+                    })
                 )}
                 <View style={{ height: 100 }} />
             </ScrollView>
