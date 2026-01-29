@@ -50,7 +50,10 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
             {isSelected && (
                 <TouchableOpacity
                     style={styles.deleteButton}
-                    onPress={onDelete}
+                    onPress={() => {
+                        console.log('Delete button pressed, triggering onDelete...');
+                        if (onDelete) onDelete();
+                    }}
                     activeOpacity={0.8}
                     hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                 >
@@ -65,6 +68,10 @@ const styles = StyleSheet.create({
     container: {
         marginBottom: theme.spacing.sm,
         position: 'relative',
+        // Add padding to ensure the absolute positioned button stays within the parent view bounds
+        // This is critical for touch events on Android
+        paddingTop: 12,
+        paddingRight: 12,
     },
     touchable: {
         flex: 1,
@@ -106,24 +113,24 @@ const styles = StyleSheet.create({
     },
     deleteButton: {
         position: 'absolute',
-        top: -10,
-        right: -10,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        top: 0,
+        right: 0,
+        width: 32, // Increased size
+        height: 32,
+        borderRadius: 16,
         backgroundColor: '#FF5252', // Red
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
-        elevation: 10, // Higher elevation
-        zIndex: 999, // Ensure it's on top
+        elevation: 10,
+        zIndex: 9999, // Ensure it's on top
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
     },
     deleteIcon: {
         color: 'white',
-        fontSize: 16,
+        fontSize: 20, // Increased font size
         fontWeight: 'bold',
         marginTop: -2,
     }
