@@ -182,17 +182,20 @@ export const expensesService = {
     async getExpenseStats(userId: string, startDate: string, endDate: string) {
         const { data, error } = await supabase
             .from('expenses')
-            .select('amount, category_id, categories(name, color)')
+            .select('amount, category_id, categories(name, color, type)')
             .eq('user_id', userId)
             .gte('date', startDate)
             .lte('date', endDate);
 
         if (error) throw error;
 
-        const total = data.reduce((sum, exp) => sum + Number(exp.amount), 0);
+        // Filter only expenses (exclude income)
+        const expensesOnly = data.filter((exp: any) => exp.categories?.type === 'expense');
+
+        const total = expensesOnly.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
         // Group by category
-        const byCategory = data.reduce((acc: any, exp: any) => {
+        const byCategory = expensesOnly.reduce((acc: any, exp: any) => {
             const categoryName = exp.categories?.name || 'Outros';
             const categoryColor = exp.categories?.color || '#707070';
 

@@ -255,7 +255,7 @@ export const CoachScreen = () => {
 
             {/* Charts Section with Selector */}
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Distribuição de Gastos</Text>
+                <Text style={styles.sectionTitle}>Distribuição de Despesas</Text>
                 <View style={styles.chartToggle}>
                     <TouchableOpacity onPress={() => setChartType('bar')} style={[styles.toggleBtn, chartType === 'bar' && styles.toggleBtnActive]}>
                         <Text style={[styles.toggleText, chartType === 'bar' && styles.toggleTextActive]}>📊</Text>
