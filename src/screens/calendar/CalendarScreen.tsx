@@ -88,28 +88,48 @@ const CalendarScreen = () => {
 
     // Filter expenses for selected date
     const selectedDateExpenses = monthExpenses.filter(e => e.date === selectedDate);
-    const totalSelectedDate = selectedDateExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+    // Calculate income and expenses separately
+    let totalIncome = 0;
+    let totalExpense = 0;
+    selectedDateExpenses.forEach(e => {
+        const amount = Number(e.amount);
+        const type = (e as any).category?.type || 'expense';
+        if (type === 'income') {
+            totalIncome += amount;
+        } else {
+            totalExpense += amount;
+        }
+    });
+    const totalSelectedDate = totalIncome - totalExpense;
 
     const onDayPress = (day: DateData) => {
         setSelectedDate(day.dateString);
     };
 
-    const renderExpenseItem = ({ item }: { item: Expense & { category?: any } }) => (
-        <View style={styles.expenseItem}>
-            <View style={styles.expenseLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: item.category?.color || theme.colors.background.tertiary }]}>
-                    <Text style={styles.categoryIcon}>{item.category?.icon || '💰'}</Text>
+    const renderExpenseItem = ({ item }: { item: Expense & { category?: any } }) => {
+        const type = item.category?.type || 'expense';
+        const isIncome = type === 'income';
+
+        return (
+            <View style={styles.expenseItem}>
+                <View style={styles.expenseLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: item.category?.color || theme.colors.background.tertiary }]}>
+                        <Text style={styles.categoryIcon}>{item.category?.icon || '💰'}</Text>
+                    </View>
+                    <View style={styles.expenseInfo}>
+                        <Text style={styles.merchant}>{item.merchant || (isIncome ? 'Receita' : 'Despesa')}</Text>
+                        <Text style={styles.category}>{item.category?.name || 'Sem categoria'}</Text>
+                    </View>
                 </View>
-                <View style={styles.expenseInfo}>
-                    <Text style={styles.merchant}>{item.merchant || 'Despesa'}</Text>
-                    <Text style={styles.category}>{item.category?.name || 'Sem categoria'}</Text>
+                <View>
+                    <Text style={[styles.amount, { color: isIncome ? '#4CAF50' : '#FF5252' }]}>
+                        {isIncome ? '+' : '-'}€{Number(item.amount).toFixed(2)}
+                    </Text>
                 </View>
             </View>
-            <View>
-                <Text style={styles.amount}>-€{Number(item.amount).toFixed(2)}</Text>
-            </View>
-        </View>
-    );
+        );
+    };
 
     const onMonthChange = (date: DateData) => {
         // Refresh data when month changes
@@ -156,8 +176,8 @@ const CalendarScreen = () => {
                     <Text style={styles.dateHeader}>
                         {format(parseISO(selectedDate), "d 'de' MMMM", { locale: pt })}
                     </Text>
-                    <Text style={styles.totalHeader}>
-                        Total: €{totalSelectedDate.toFixed(2)}
+                    <Text style={[styles.totalHeader, { color: totalSelectedDate >= 0 ? '#4CAF50' : '#FF5252' }]}>
+                        Saldo: €{totalSelectedDate.toFixed(2)}
                     </Text>
                 </View>
 
@@ -171,7 +191,7 @@ const CalendarScreen = () => {
                         contentContainerStyle={styles.listContent}
                         ListEmptyComponent={
                             <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyText}>Sem despesas neste dia</Text>
+                                <Text style={styles.emptyText}>Sem transações neste dia</Text>
                             </View>
                         }
                         refreshControl={
