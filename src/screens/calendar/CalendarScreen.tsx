@@ -9,6 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useFocusEffect } from '@react-navigation/native';
 
+import { ResponsiveContainer } from '../../components/ui/ResponsiveContainer';
 // Configure Portuguese locale
 LocaleConfig.locales['pt'] = {
     monthNames: [
@@ -137,6 +138,7 @@ const CalendarScreen = () => {
     };
 
     return (
+        <ResponsiveContainer>
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Calendário</Text>

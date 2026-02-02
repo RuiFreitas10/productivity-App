@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, ActivityIndicat
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../../theme/theme';
 import { ManualExpenseModal } from '../../components/expenses/ManualExpenseModal';
+import { ResponsiveContainer } from '../../components/ui/ResponsiveContainer';
 
 export const ScanScreen = ({ navigation }: any) => {
     const [image, setImage] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export const ScanScreen = ({ navigation }: any) => {
     };
 
     return (
-        <View style={styles.container}>
+        <ResponsiveContainer style={styles.container}>
             <View style={styles.content}>
                 {/* Close Button since TabBar is hidden */}
                 <TouchableOpacity
@@ -104,7 +105,7 @@ export const ScanScreen = ({ navigation }: any) => {
                 onSuccess={handleSave}
                 initialData={scannedData}
             />
-        </View>
+        </ResponsiveContainer>
     );
 };
 

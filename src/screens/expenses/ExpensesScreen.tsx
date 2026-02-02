@@ -9,6 +9,7 @@ import { ExpenseCard } from '../../components/expenses/ExpenseCard';
 import { ManualExpenseModal } from '../../components/expenses/ManualExpenseModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency } from '../../utils/formatters';
+import { ResponsiveContainer } from '../../components/ui/ResponsiveContainer';
 
 const PERIODS = [
     { label: 'Hoje', value: 'today' },
@@ -126,107 +127,109 @@ export const ExpensesScreen = ({ navigation }: any) => {
     };
 
     return (
-        <View style={styles.container}>
-            <LinearGradient
-                colors={[theme.colors.background.secondary, theme.colors.background.primary]}
-                style={styles.header}
-            >
-                <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.greeting}>Olá, {user?.email?.split('@')[0]}</Text>
-                        <Text style={styles.balanceLabel}>{selectedPeriod === 'month' ? 'Saldo este mês' : 'Saldo Total'}</Text>
-                        <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
+        <ResponsiveContainer>
+            <View style={styles.container}>
+                <LinearGradient
+                    colors={[theme.colors.background.secondary, theme.colors.background.primary]}
+                    style={styles.header}
+                >
+                    <View style={styles.headerContent}>
+                        <View>
+                            <Text style={styles.greeting}>Olá, {user?.email?.split('@')[0]}</Text>
+                            <Text style={styles.balanceLabel}>{selectedPeriod === 'month' ? 'Saldo este mês' : 'Saldo Total'}</Text>
+                            <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
 
-                        <View style={styles.statsRow}>
-                            <View style={styles.statItem}>
-                                <Text style={styles.statLabel}>Receitas</Text>
-                                <Text style={[styles.statValue, { color: '#4CAF50' }]}>{formatCurrency(income)}</Text>
-                            </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
-                                <Text style={styles.statLabel}>Despesas</Text>
-                                <Text style={[styles.statValue, { color: '#FF5252' }]}>{formatCurrency(expense)}</Text>
+                            <View style={styles.statsRow}>
+                                <View style={styles.statItem}>
+                                    <Text style={styles.statLabel}>Receitas</Text>
+                                    <Text style={[styles.statValue, { color: '#4CAF50' }]}>{formatCurrency(income)}</Text>
+                                </View>
+                                <View style={styles.statDivider} />
+                                <View style={styles.statItem}>
+                                    <Text style={styles.statLabel}>Despesas</Text>
+                                    <Text style={[styles.statValue, { color: '#FF5252' }]}>{formatCurrency(expense)}</Text>
+                                </View>
                             </View>
                         </View>
+                        <TouchableOpacity style={styles.profileButton}>
+                            <Text style={styles.profileIcon}>👤</Text>
+                        </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={styles.profileButton}>
-                        <Text style={styles.profileIcon}>👤</Text>
+
+                    {/* Period Selector */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periodContainer}>
+                        {PERIODS.map(p => (
+                            <TouchableOpacity
+                                key={p.value}
+                                style={[styles.periodButton, selectedPeriod === p.value && styles.periodButtonActive]}
+                                onPress={() => setSelectedPeriod(p.value)}
+                            >
+                                <Text style={[styles.periodText, selectedPeriod === p.value && styles.periodTextActive]}>
+                                    {p.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </LinearGradient>
+
+                {/* Content Body */}
+                <ScrollView
+                    style={styles.content}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.accent.primary} />}
+                >
+                    <View style={styles.listHeader}>
+                        <Text style={styles.listTitle}>Transações Recentes</Text>
+                    </View>
+
+                    {expenses.length === 0 && !loading ? (
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyText}>Sem despesas neste período.</Text>
+                        </View>
+                    ) : (
+                        expenses.map(expense => {
+                            const expenseType = (expense as any).category?.type || 'expense';
+                            return (
+                                <ExpenseCard
+                                    key={expense.id}
+                                    merchant={expense.merchant}
+                                    date={expense.date}
+                                    amount={expense.amount}
+                                    currency={expense.currency}
+                                    categoryIcon={(expense as any).category?.icon}
+                                    type={expenseType}
+                                    onPress={() => console.log('Expense tap')}
+                                    onLongPress={() => confirmDelete(expense)}
+                                />
+                            );
+                        })
+                    )}
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+
+                {/* Action Buttons */}
+                <View style={styles.fabContainer}>
+                    <TouchableOpacity
+                        style={[styles.fab, { backgroundColor: '#FF5252', marginRight: 16 }]}
+                        onPress={() => setActiveModalType('expense')}
+                    >
+                        <Text style={styles.fabIcon}>-</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.fab, { backgroundColor: '#4CAF50' }]}
+                        onPress={() => setActiveModalType('income')}
+                    >
+                        <Text style={styles.fabIcon}>+</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Period Selector */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periodContainer}>
-                    {PERIODS.map(p => (
-                        <TouchableOpacity
-                            key={p.value}
-                            style={[styles.periodButton, selectedPeriod === p.value && styles.periodButtonActive]}
-                            onPress={() => setSelectedPeriod(p.value)}
-                        >
-                            <Text style={[styles.periodText, selectedPeriod === p.value && styles.periodTextActive]}>
-                                {p.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </LinearGradient>
-
-            {/* Content Body */}
-            <ScrollView
-                style={styles.content}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.accent.primary} />}
-            >
-                <View style={styles.listHeader}>
-                    <Text style={styles.listTitle}>Transações Recentes</Text>
-                </View>
-
-                {expenses.length === 0 && !loading ? (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>Sem despesas neste período.</Text>
-                    </View>
-                ) : (
-                    expenses.map(expense => {
-                        const expenseType = (expense as any).category?.type || 'expense';
-                        return (
-                            <ExpenseCard
-                                key={expense.id}
-                                merchant={expense.merchant}
-                                date={expense.date}
-                                amount={expense.amount}
-                                currency={expense.currency}
-                                categoryIcon={(expense as any).category?.icon}
-                                type={expenseType}
-                                onPress={() => console.log('Expense tap')}
-                                onLongPress={() => confirmDelete(expense)}
-                            />
-                        );
-                    })
-                )}
-                <View style={{ height: 100 }} />
-            </ScrollView>
-
-            {/* Action Buttons */}
-            <View style={styles.fabContainer}>
-                <TouchableOpacity
-                    style={[styles.fab, { backgroundColor: '#FF5252', marginRight: 16 }]}
-                    onPress={() => setActiveModalType('expense')}
-                >
-                    <Text style={styles.fabIcon}>-</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.fab, { backgroundColor: '#4CAF50' }]}
-                    onPress={() => setActiveModalType('income')}
-                >
-                    <Text style={styles.fabIcon}>+</Text>
-                </TouchableOpacity>
+                <ManualExpenseModal
+                    visible={!!activeModalType}
+                    onClose={() => setActiveModalType(null)}
+                    onSuccess={fetchExpenses}
+                    type={activeModalType || 'expense'}
+                />
             </View>
-
-            <ManualExpenseModal
-                visible={!!activeModalType}
-                onClose={() => setActiveModalType(null)}
-                onSuccess={fetchExpenses}
-                type={activeModalType || 'expense'}
-            />
-        </View>
+        </ResponsiveContainer>
     );
 };
 
