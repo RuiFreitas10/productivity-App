@@ -1,8 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, StyleSheet, Text, Platform, Dimensions } from 'react-native';
+import { View, StyleSheet, Text, Platform } from 'react-native';
 import { theme } from '../theme/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../hooks/useResponsive';
+import { DesktopSidebar, SIDEBAR_WIDTH } from '../components/navigation/DesktopSidebar';
 
 // Screens
 import { ExpensesScreen } from '../screens/expenses/ExpensesScreen';
@@ -12,7 +14,6 @@ import { CoachScreen } from '../screens/coach/CoachScreen';
 import { ScanScreen } from '../screens/scan/ScanScreen';
 
 const Tab = createBottomTabNavigator();
-const { width } = Dimensions.get('window');
 
 const TabIcon = ({ label, focused }: { label: string; focused: boolean }) => (
     <View style={styles.iconContainer}>
@@ -32,58 +33,108 @@ const ScanIcon = () => (
 
 export const MainTabNavigator = () => {
     const insets = useSafeAreaInsets();
+    const { isDesktop } = useResponsive();
 
     return (
-        <Tab.Navigator
-            screenOptions={{
-                headerShown: false,
-                tabBarShowLabel: false,
-                tabBarStyle: styles.tabBar,
-            }}
-        >
-            <Tab.Screen
-                name="Wallet"
-                component={ExpensesScreen}
-                options={{
-                    tabBarIcon: ({ focused }) => <TabIcon label="💳" focused={focused} />,
+        <View style={styles.container}>
+            <Tab.Navigator
+                screenOptions={{
+                    headerShown: false,
+                    tabBarShowLabel: false,
+                    tabBarStyle: isDesktop ? { display: 'none' } : styles.tabBar,
                 }}
-            />
-            <Tab.Screen
-                name="Calendar"
-                component={CalendarScreen}
-                options={{
-                    tabBarIcon: ({ focused }) => <TabIcon label="📅" focused={focused} />,
-                }}
-            />
+                tabBar={(props) =>
+                    isDesktop ? (
+                        <DesktopSidebar {...props} />
+                    ) : (
+                        <View style={styles.tabBar}>
+                            {props.state.routes.map((route, index) => {
+                                const isFocused = props.state.index === index;
+                                const onPress = () => {
+                                    const event = props.navigation.emit({
+                                        type: 'tabPress',
+                                        target: route.key,
+                                        canPreventDefault: true,
+                                    });
 
-            <Tab.Screen
-                name="Scan"
-                component={ScanScreen}
-                options={{
-                    tabBarIcon: () => <ScanIcon />,
-                    tabBarStyle: { display: 'none' } // Hide tab bar when inside ScanScreen if desired, or keep it. Keeping it hidden as before.
-                }}
-            />
+                                    if (!isFocused && !event.defaultPrevented) {
+                                        props.navigation.navigate(route.name);
+                                    }
+                                };
 
-            <Tab.Screen
-                name="Planner"
-                component={PlannerScreen}
-                options={{
-                    tabBarIcon: ({ focused }) => <TabIcon label="📝" focused={focused} />,
-                }}
-            />
-            <Tab.Screen
-                name="Coach"
-                component={CoachScreen}
-                options={{
-                    tabBarIcon: ({ focused }) => <TabIcon label="🤖" focused={focused} />,
-                }}
-            />
-        </Tab.Navigator>
+                                let icon;
+                                if (route.name === 'Scan') {
+                                    icon = <ScanIcon />;
+                                } else {
+                                    const iconMap: Record<string, string> = {
+                                        Expenses: '💰',
+                                        Calendar: '📅',
+                                        Planner: '✅',
+                                        Coach: '🤖',
+                                    };
+                                    icon = <TabIcon label={iconMap[route.name] || '❓'} focused={isFocused} />;
+                                }
+
+                                return (
+                                    <View key={route.key} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text onPress={onPress} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                            {icon}
+                                        </Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )
+                }
+            >
+                <Tab.Screen
+                    name="Expenses"
+                    component={ExpensesScreen}
+                    options={{
+                        tabBarIcon: ({ focused }) => <TabIcon label="💰" focused={focused} />,
+                    }}
+                />
+                <Tab.Screen
+                    name="Calendar"
+                    component={CalendarScreen}
+                    options={{
+                        tabBarIcon: ({ focused }) => <TabIcon label="📅" focused={focused} />,
+                    }}
+                />
+
+                <Tab.Screen
+                    name="Scan"
+                    component={ScanScreen}
+                    options={{
+                        tabBarIcon: () => <ScanIcon />,
+                        tabBarStyle: { display: 'none' } // Hide tab bar when inside ScanScreen if desired, or keep it. Keeping it hidden as before.
+                    }}
+                />
+
+                <Tab.Screen
+                    name="Planner"
+                    component={PlannerScreen}
+                    options={{
+                        tabBarIcon: ({ focused }) => <TabIcon label="✅" focused={focused} />,
+                    }}
+                />
+                <Tab.Screen
+                    name="Coach"
+                    component={CoachScreen}
+                    options={{
+                        tabBarIcon: ({ focused }) => <TabIcon label="🤖" focused={focused} />,
+                    }}
+                />
+            </Tab.Navigator>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        flexDirection: 'row',
+    },
     tabBar: {
         backgroundColor: '#1C1C1E',
         borderTopWidth: 0,
@@ -96,6 +147,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 20,
         height: Platform.OS === 'ios' ? 85 : 65, // Standard height
         paddingBottom: Platform.OS === 'ios' ? 25 : 10, // Standard padding
+        flexDirection: 'row',
     },
     iconContainer: {
         alignItems: 'center',
@@ -121,11 +173,10 @@ const styles = StyleSheet.create({
         transform: [{ scale: 1.1 }],
     },
 
-    // Scan Button - Standard Inline
+    // Scan Button
     scanButtonContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        // Removed negative margins to keep it inline
     },
     scanButton: {
         width: 50, // Same size as other active/focus states
